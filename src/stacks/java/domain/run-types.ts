@@ -151,6 +151,65 @@ export interface JavaGateAssistantPreview {
   actionChecksum: string;
 }
 
+
+export interface JavaTargetVersionRow {
+  groupId: string;
+  artifactId: string;
+  targetVersion: string;
+}
+
+export interface JavaPomVersionChange {
+  groupId: string;
+  artifactId: string;
+  currentVersion: string;
+  targetVersion: string;
+}
+
+export interface JavaTargetVersionRepairAttempt {
+  id: string;
+  attempt: number;
+  status: "READY_FOR_APPLY" | "APPLIED" | "VALIDATED" | "SUPERSEDED";
+  diagnosis: string;
+  diff: string;
+  checksum: string;
+  createdAt: string;
+}
+
+export interface JavaTargetVersionState {
+  rows: JavaTargetVersionRow[];
+  changes: JavaPomVersionChange[];
+  status:
+    | "EMPTY"
+    | "PROPOSED"
+    | "APPLIED"
+    | "PASS"
+    | "FAILED"
+    | "REPAIR_READY";
+  diff: string;
+  repairAttempts: JavaTargetVersionRepairAttempt[];
+}
+
+export interface JavaStage4OutputRevision {
+  revision: number;
+  status: "READY_FOR_REVIEW" | "ACCEPTED";
+  summary: string;
+  checksum: string;
+  createdAt: string;
+}
+
+export interface JavaReportArtifact {
+  id: string;
+  label: string;
+  mediaType: "text/markdown" | "application/json" | "text/csv";
+  content: string;
+}
+
+export interface JavaFinalReportState {
+  status: "BLOCKED" | "ELIGIBLE" | "GENERATED";
+  generatedAt?: string;
+  artifacts: JavaReportArtifact[];
+}
+
 export interface JavaJobModel extends JavaJobSeed {
   route: JavaRouteStage[];
   pipeline: JavaPipelinePhase[];
@@ -166,5 +225,9 @@ export interface JavaJobModel extends JavaJobSeed {
   terminalStage4: {
     active: boolean;
     acceptedOutputRevision: number | null;
+    outputRevisions: JavaStage4OutputRevision[];
+    targetVersions: JavaTargetVersionState;
+    validation: "PENDING" | "PASS" | "FAILED";
   };
+  finalReport: JavaFinalReportState;
 }

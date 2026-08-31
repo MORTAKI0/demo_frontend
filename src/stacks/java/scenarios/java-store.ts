@@ -23,6 +23,22 @@ function asJobModel(job: JavaJobSeed | JavaJobModel): JavaJobModel {
       attempts: [],
       maxAttempts: 3,
     },
+    terminalStage4: {
+      ...model.terminalStage4,
+      outputRevisions: model.terminalStage4.outputRevisions ?? [],
+      targetVersions: model.terminalStage4.targetVersions ?? {
+        rows: [],
+        changes: [],
+        status: "EMPTY",
+        diff: "",
+        repairAttempts: [],
+      },
+      validation: model.terminalStage4.validation ?? "PENDING",
+    },
+    finalReport: model.finalReport ?? {
+      status: "BLOCKED",
+      artifacts: [],
+    },
   };
 }
 

@@ -162,6 +162,19 @@ export function createJavaJobModel(seed: JavaJobSeed): JavaJobModel {
     terminalStage4: {
       active: seed.currentStage === 4,
       acceptedOutputRevision: null,
+      outputRevisions: [],
+      targetVersions: {
+        rows: [],
+        changes: [],
+        status: "EMPTY",
+        diff: "",
+        repairAttempts: [],
+      },
+      validation: "PENDING",
+    },
+    finalReport: {
+      status: "BLOCKED",
+      artifacts: [],
     },
   };
 }

@@ -22,6 +22,14 @@ import {
 } from "../workflow/cockpit";
 import { cancelJavaMigration } from "../workflow/cancellation";
 import { applyJavaRepairDecision } from "../workflow/repair";
+import {
+  acceptJavaStage4Output,
+  analyzeJavaTargetVersions,
+  applyJavaTargetVersionProposal,
+  applyJavaTargetVersionRepair,
+  createJavaStage4OutputRevision,
+  generateJavaFinalReport,
+} from "../workflow/terminal";
 import { JavaCurrentAction } from "./java-current-action";
 import { JavaEvidenceWorkspace } from "./java-evidence-workspace";
 import { JavaGateAssistantPanel } from "./java-gate-assistant-panel";
@@ -29,11 +37,13 @@ import { JavaGateDecisionPanel } from "./java-gate-decision-panel";
 import { JavaOverview } from "./java-overview";
 import { JavaPipeline } from "./java-pipeline";
 import { JavaRepairWorkspace } from "./java-repair-workspace";
+import { JavaTargetVersionsWorkspace } from "./java-target-versions-workspace";
 
 const tabs = [
   { id: "overview", label: "Overview" },
   { id: "pipeline", label: "Pipeline" },
   { id: "evidence", label: "Evidence" },
+  { id: "target-versions", label: "Target Dependency Versions" },
 ];
 
 const REPAIR_DECISIONS = [
@@ -126,6 +136,40 @@ export function JavaCockpitPage() {
     }
   }
 
+  function applyTerminalAction(
+    action:
+      | { type: "analyze"; csv: string }
+      | { type: "apply" }
+      | { type: "repair" }
+      | { type: "create-output" }
+      | { type: "accept-output"; revision: number }
+      | { type: "report" },
+  ) {
+    try {
+      setError(null);
+      const next =
+        action.type === "analyze"
+          ? analyzeJavaTargetVersions(job, action.csv)
+          : action.type === "apply"
+            ? applyJavaTargetVersionProposal(job)
+            : action.type === "repair"
+              ? applyJavaTargetVersionRepair(job)
+              : action.type === "create-output"
+                ? createJavaStage4OutputRevision(job)
+                : action.type === "accept-output"
+                  ? acceptJavaStage4Output(job, action.revision)
+                  : generateJavaFinalReport(job);
+      persist(next);
+      setActive("target-versions");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to apply terminal Stage 4 action.",
+      );
+    }
+  }
+
   const canAdvance =
     !job.currentGate &&
     job.status !== "CANCELLED" &&
@@ -200,6 +244,19 @@ export function JavaCockpitPage() {
           ) : null}
           {active === "evidence" ? (
             <JavaEvidenceWorkspace job={job} />
+          ) : null}
+          {active === "target-versions" ? (
+            <JavaTargetVersionsWorkspace
+              job={job}
+              onAnalyze={(csv) => applyTerminalAction({ type: "analyze", csv })}
+              onApply={() => applyTerminalAction({ type: "apply" })}
+              onRepair={() => applyTerminalAction({ type: "repair" })}
+              onCreateOutput={() => applyTerminalAction({ type: "create-output" })}
+              onAcceptOutput={(revision) =>
+                applyTerminalAction({ type: "accept-output", revision })
+              }
+              onGenerateReport={() => applyTerminalAction({ type: "report" })}
+            />
           ) : null}
         </div>
 
