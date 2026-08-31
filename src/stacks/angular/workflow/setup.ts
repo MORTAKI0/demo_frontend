@@ -1,4 +1,4 @@
-import { stableDisplayChecksum } from "@/scenarios/runtime/checksum";
+import { stableDisplayChecksum } from "../../../scenarios/runtime/checksum.ts";
 import {
   ANGULAR_MAJORS,
   type AngularG01Decision,
