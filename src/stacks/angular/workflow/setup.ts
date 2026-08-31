@@ -6,7 +6,7 @@ import {
   type AngularPreflight,
   type AngularRouteStep,
   type AngularRunSeed,
-} from "../domain/types";
+} from "../domain/types.ts";
 
 export interface PrepareAngularInput {
   runName: string;
