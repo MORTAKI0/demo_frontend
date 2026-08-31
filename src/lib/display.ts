@@ -15,6 +15,10 @@ const SUCCESS = new Set([
   "QUALIFIED",
   "VERIFIED",
   "ACCEPTED",
+  "VALIDATED",
+  "SUCCEEDED",
+  "CERTIFIED",
+  "PASS",
 ]);
 
 const WARNING = new Set([
@@ -24,6 +28,9 @@ const WARNING = new Set([
   "WAITING",
   "PAUSED",
   "STALE",
+  "READY_FOR_G10",
+  "READY_FOR_REVIEW",
+  "WAITING_COMPLETION",
 ]);
 
 const DANGER = new Set([
@@ -34,6 +41,7 @@ const DANGER = new Set([
   "CANCELLED",
   "ERROR",
   "RECOVERY_REQUIRED",
+  "REJECTED_BY_CAUSAL_POLICY",
 ]);
 
 const INFO = new Set([

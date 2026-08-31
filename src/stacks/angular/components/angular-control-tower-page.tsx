@@ -14,6 +14,12 @@ import type {
 import { getAngularRun, putAngularRun } from "../scenarios/angular-store";
 import { applyAngularGateDecision } from "../workflow/run";
 import { applyAngularStageGateDecision } from "../workflow/proven";
+import {
+  createAngularPartialDelivery,
+  restartAngularActiveStage,
+  resumeAngularFromSealed,
+  rollbackAngularToFurthestSealed,
+} from "../workflow/recovery";
 import { AngularCurrentAction } from "./angular-current-action";
 import { AngularDiagnosticsWorkspace } from "./angular-diagnostics-workspace";
 import { AngularEvidenceWorkspace } from "./angular-evidence-workspace";
@@ -71,6 +77,25 @@ export function AngularControlTowerPage() {
     }
   }
 
+  function applyRecovery(action: "delivery" | "rollback" | "resume" | "restart") {
+    try {
+      setError(null);
+      const next =
+        action === "delivery"
+          ? createAngularPartialDelivery(run)
+          : action === "rollback"
+            ? rollbackAngularToFurthestSealed(run)
+            : action === "resume"
+              ? resumeAngularFromSealed(run)
+              : restartAngularActiveStage(run);
+      putAngularRun(next);
+      setRun(next);
+      setActive("diagnostics");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to apply recovery action.");
+    }
+  }
+
   return (
     <div className="mf-page">
       <ProductHeader
@@ -116,7 +141,15 @@ export function AngularControlTowerPage() {
             </div>
           ) : null}
           {active === "evidence" ? <AngularEvidenceWorkspace run={run} /> : null}
-          {active === "diagnostics" ? <AngularDiagnosticsWorkspace run={run} /> : null}
+          {active === "diagnostics" ? (
+            <AngularDiagnosticsWorkspace
+              run={run}
+              onPartialDelivery={() => applyRecovery("delivery")}
+              onRollback={() => applyRecovery("rollback")}
+              onResume={() => applyRecovery("resume")}
+              onRestart={() => applyRecovery("restart")}
+            />
+          ) : null}
         </div>
 
         <div className="mt-6">

@@ -5,7 +5,21 @@ import { useState } from "react";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import type { AngularRunEvidence, AngularRunModel } from "../domain/run-types";
 
-const FILTERS = ["ALL", "DECISION", "BASELINE", "ANALYSIS", "FEASIBILITY", "PLANNING", "SOURCE"] as const;
+const FILTERS = [
+  "ALL",
+  "DECISION",
+  "BASELINE",
+  "ANALYSIS",
+  "FEASIBILITY",
+  "PLANNING",
+  "SOURCE",
+  "STAGE",
+  "FAILURE",
+  "REPAIR",
+  "VALIDATION",
+  "SEAL",
+  "COMMAND",
+] as const;
 type Filter = (typeof FILTERS)[number];
 
 export function AngularEvidenceWorkspace({ run }: { run: AngularRunModel }) {

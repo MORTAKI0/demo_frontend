@@ -10,7 +10,28 @@ import type {
   AngularPlanningRevision,
   AngularPreTransformGateId,
   AngularRunModel,
+  AngularCommandRecord,
 } from "../domain/run-types.ts";
+
+function baselineCommand(
+  runId: string,
+  action: AngularCommandRecord["action"],
+  command: string,
+  timestamp: string,
+  logs: string[],
+): AngularCommandRecord {
+  return {
+    id: `${runId}-command-${action.toLowerCase()}`,
+    action,
+    command,
+    authorization: "GOVERNED",
+    status: "SUCCEEDED",
+    exitCode: 0,
+    logs,
+    timestamp,
+    checksum: stableDisplayChecksum(`${runId}:${action}:${command}:${timestamp}`),
+  };
+}
 
 const GATE_LABELS: Record<AngularPreTransformGateId, string> = {
   G02: "Source Snapshot",
@@ -106,6 +127,18 @@ export function createAngularRunModel(seed: AngularRunSeed): AngularRunModel {
       },
     ],
     diagnostics: [],
+    operations: {
+      commands: seed.state === "COMPLETED"
+        ? [
+            baselineCommand(seed.id, "BASELINE_INSTALL", "npm ci", seed.createdAt, ["Lockfile authority accepted.", "Install completed."]),
+            baselineCommand(seed.id, "BASELINE_BUILD", "npm run build", seed.createdAt, ["Baseline build completed."]),
+            baselineCommand(seed.id, "BASELINE_TEST", "npm test", seed.createdAt, ["Known source warning preserved.", "Baseline test matrix completed."]),
+          ]
+        : [],
+      partialDeliveries: [],
+      rollbacks: [],
+      stageHistory: [],
+    },
     route: seed.state === "COMPLETED"
       ? seed.route.map((step) => ({ ...step, status: "SEALED" as const }))
       : seed.route,
@@ -277,6 +310,15 @@ function progressApprovedGate(
       currentAction: "Review qualified baseline and known source failures",
       gates: unlock(run.gates, "G03"),
       baseline: completedBaseline(),
+      operations: {
+        ...run.operations,
+        commands: [
+          ...run.operations.commands,
+          baselineCommand(run.id, "BASELINE_INSTALL", "npm ci", "2026-08-31T19:46:00+01:00", ["Lockfile authority accepted.", "Install completed."]),
+          baselineCommand(run.id, "BASELINE_BUILD", "npm run build", "2026-08-31T19:46:20+01:00", ["Baseline build completed with exit code 0."]),
+          baselineCommand(run.id, "BASELINE_TEST", "npm test", "2026-08-31T19:46:40+01:00", ["Known source warning classified.", "Baseline tests completed."]),
+        ],
+      },
       evidence: [
         ...run.evidence,
         {

@@ -179,6 +179,45 @@ export type AngularRunPhase =
   | "COMPLETE"
   | "BLOCKED";
 
+
+export interface AngularCommandRecord {
+  id: string;
+  action: "BASELINE_INSTALL" | "BASELINE_BUILD" | "BASELINE_TEST" | "ROLLBACK" | "RESUME" | "PARTIAL_DELIVERY" | "RESTART";
+  command: string;
+  authorization: "GOVERNED";
+  status: "SUCCEEDED" | "FAILED";
+  exitCode: number;
+  logs: string[];
+  timestamp: string;
+  checksum: string;
+}
+
+export interface AngularPartialDelivery {
+  id: string;
+  stageId: string;
+  source: AngularMajor;
+  target: AngularMajor;
+  artifactPath: string;
+  timestamp: string;
+  checksum: string;
+}
+
+export interface AngularRollbackRecord {
+  id: string;
+  fromStageId: string | null;
+  toStageId: string;
+  timestamp: string;
+  reason: string;
+  checksum: string;
+}
+
+export interface AngularOperations {
+  commands: AngularCommandRecord[];
+  partialDeliveries: AngularPartialDelivery[];
+  rollbacks: AngularRollbackRecord[];
+  stageHistory: AngularStageExecution[];
+}
+
 export interface AngularRunModel extends AngularRunSeed {
   phase: AngularRunPhase;
   gates: Record<AngularPreTransformGateId, AngularGateState>;
@@ -188,5 +227,6 @@ export interface AngularRunModel extends AngularRunSeed {
   planning: AngularPlanningRevision[];
   evidence: AngularRunEvidence[];
   diagnostics: string[];
+  operations: AngularOperations;
   stageExecution?: AngularStageExecution;
 }

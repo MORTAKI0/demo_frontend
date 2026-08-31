@@ -28,7 +28,16 @@ function emptyState(): AngularPresentationState {
 }
 
 function asRunModel(run: AngularRunModel | AngularRunSeed): AngularRunModel {
-  return "gates" in run ? run : createAngularRunModel(run);
+  const model = "gates" in run ? run : createAngularRunModel(run);
+  return {
+    ...model,
+    operations: model.operations ?? {
+      commands: [],
+      partialDeliveries: [],
+      rollbacks: [],
+      stageHistory: [],
+    },
+  };
 }
 
 export function loadAngularState(): AngularPresentationState {
