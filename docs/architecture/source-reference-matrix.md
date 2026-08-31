@@ -1,0 +1,84 @@
+# Original Source Reference Matrix
+
+This file maps presentation behavior to the two audited source snapshots.
+
+## Source locks
+
+| Stack | Snapshot |
+|---|---|
+| Angular | `02e4c75e4dc15ad1d54bd2df35ed511043700abd` |
+| Java | `47d206874b494d8064cc88d5b146361564d18871` |
+
+## Angular
+
+| Presentation behavior | Original source |
+|---|---|
+| architecture / frontend presentation-only | `AGENT.md` |
+| modern PROVEN semantics | `backend/app/domain/transformation.py`, `backend/app/orchestration/transformer_graph.py` |
+| proven 11→15 behavior | `ANGULAR_MIGRATION_FACTORY_RUN_4E1DCAD22CFE.md` |
+| G01 | `backend/app/domain/preflight.py`, `backend/app/api/routes/preflights.py` |
+| source validation/analysis | `backend/app/api/routes/sources.py`, `source_analysis.py` |
+| environment/runtime readiness | `backend/app/api/routes/environment.py`, runtime/execution-profile routes |
+| G02 | `backend/app/domain/g02.py`, `backend/app/api/routes/g02.py` |
+| baseline/G03 | `baseline.py`, `baseline_matrix.py`, `baseline_parity.py`, `baseline_g03.py`, `domain/baseline_qualification.py` |
+| G04 analysis | `domain/analysis.py`, `api/routes/analysis.py` |
+| G05 compatibility | `api/routes/compatibility.py`, compatibility contracts/services |
+| G06 planning | `domain/planning_review.py`, `api/routes/planning_review.py` |
+| dynamic route | `api/routes/migration_route.py` |
+| runtime certification | `api/routes/runtime_certification.py`, `stage_runtime.py` |
+| PROVEN execution | `services/proven_stage_execution_service.py` |
+| gate successors | `services/stage_gate_service.py` |
+| clean G12→promotion→seal | `proven_stage_execution_service.py`, `candidate_promotion_service.py`, `stage_gate_service.py`, run evidence |
+| sealing | `services/stage_sealing_service.py`, `orchestration/transformer_sealing_flow.py` |
+| repair/causal policy | repair services, `domain/repair_lifecycle.py`, proven run evidence |
+| commands/logs | `api/routes/run_commands.py`, command domain/services |
+| rollback | `api/routes/stage_rollback.py` |
+| partial delivery | `api/routes/partial_delivery.py` |
+| terminal recovery | `terminal_lifecycle.py`, `terminal_operation.py` |
+| audit/quality | `execution_audit.py`, `quality_metrics.py` |
+| assistant/LLM | `assistant.py`, `llm.py` |
+| current hardcoded route debt | `frontend/src/presentation/runJourney.ts`, `currentAction.ts` |
+
+### Angular discrepancy rule
+
+For this snapshot, executable code and proven run evidence override conflicting README gate-order prose:
+
+- clean: G12 → promotion → seal;
+- repaired: G10 → revalidate → G11 → G09 → G12 → promotion → seal;
+- G08 is not mandatory modern PROVEN behavior.
+
+## Java
+
+| Presentation behavior | Original source |
+|---|---|
+| Control Tower rules | `AGENTS.md` |
+| visual architecture | `DESIGN.md` |
+| API surface | `migration_factory/control_tower/adapters/fastapi/app.py` |
+| job/stage states | `domain/states.py` |
+| transitions | `domain/transitions.py` |
+| gate phases/decisions | `schemas/phase_gate.py` |
+| continuation policy/max repair | `schemas/run_configuration.py` |
+| profiles | `schemas/profile_model.py`, `profile_validation.py` |
+| route included/skipped/excluded | `application/v2_stage_progression.py` |
+| stage jobs | `application/v2_job_service.py` |
+| stage execution | `application/v2_worker_stage.py` |
+| reviewed phases | `application/v2_orchestrator_runner.py` |
+| gate lifecycle/actions | `v2_phase_gate_service.py`, `v2_gate_action_service.py` |
+| Gate Assistant | `v2_gate_assistant.py` |
+| repair | `v2_repair_flow.py`, `v2_reviewer_service.py`, `v2_repair_gate_service.py`, `v2_repair_projection.py` |
+| Repair Assistant | `repair_assistant_service.py` |
+| target versions/POM | `target_version_update.py`, `target_version_validation_coordinator.py`, POM proposer/editor/review/validator/xml patcher |
+| Stage 4 terminal behavior | `v2_stage_progression.py`, `v2_orchestrator_runner.py`, `schemas/phase_gate.py` |
+| final report | `v2_final_report_service.py` |
+| LLM activity | `v2_llm_invocation_ledger.py` |
+| New Migration UI | `web/control-tower/app/migrations/new/*` |
+| Cockpit UI | `web/control-tower/app/migrations/[jobId]/MigrationCockpit.tsx` and components |
+| target-version UI | `Stage4TargetVersionComparison.tsx` |
+
+### Java terminal rule
+
+Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indices 1–3; do not fabricate Stage-4 analysis/planning/stage-completion gates.
+
+## Maintenance rule
+
+Any future workflow change in this presentation app must update this matrix in the same commit and cite the original stack source that authorizes the change.
