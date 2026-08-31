@@ -65,9 +65,9 @@ For this snapshot, executable code and proven run evidence override conflicting 
 | reviewed phases | `application/v2_orchestrator_runner.py` |
 | gate lifecycle/actions | `v2_phase_gate_service.py`, `v2_gate_action_service.py` |
 | Gate Assistant | `v2_gate_assistant.py` |
-| repair | `v2_repair_flow.py`, `v2_reviewer_service.py`, `v2_repair_gate_service.py`, `v2_repair_projection.py` |
+| repair | `v2_repair_flow.py`, `v2_reviewer_service.py`, `v2_repair_gate_service.py`, `v2_repair_projection.py` — normal repair attempts are scoped to route stages 1–3 |
 | Repair Assistant | `repair_assistant_service.py` |
-| target versions/POM | `target_version_update.py`, `target_version_validation_coordinator.py`, POM proposer/editor/review/validator/xml patcher |
+| target versions/POM | `target_version_update.py`, `target_version_validation_coordinator.py`, POM proposer/editor/review/validator/xml patcher — CSV/XLSX target authorities are parsed before comparison |
 | Stage 4 terminal behavior | `v2_stage_progression.py`, `v2_orchestrator_runner.py`, `schemas/phase_gate.py` |
 | final report | `v2_final_report_service.py` |
 | LLM activity | `v2_llm_invocation_ledger.py` |
@@ -77,7 +77,7 @@ For this snapshot, executable code and proven run evidence override conflicting 
 
 ### Java terminal rule
 
-Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indices 1–3; do not fabricate Stage-4 analysis/planning/stage-completion gates.
+Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indices 1–3; do not fabricate Stage-4 analysis/planning/stage-completion gates. Normal repair-attempt accounting is also stage-scoped to stages 1–3; terminal AMF-252 target-version repair remains separate Stage-4 workflow state.
 
 ## Maintenance rule
 

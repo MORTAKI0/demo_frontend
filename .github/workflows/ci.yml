@@ -37,3 +37,46 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Production route smoke
+        shell: bash
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3000 > /tmp/migration-factory-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/ > /dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/migration-factory-next.log
+            exit 1
+          fi
+
+          routes=(
+            "/"
+            "/angular/migrations/new"
+            "/angular/preflights/preflight-customer-portal-11-15"
+            "/angular/migrations/run-angular-action"
+            "/java/migrations/new"
+            "/java/migrations/java-order-service"
+            "/java/migrations/java-repair-service"
+            "/java/migrations/java-terminal-service"
+            "/java/migrations/java-terminal-service/artifacts/migration-report.md"
+          )
+
+          for route in "${routes[@]}"; do
+            code=$(curl --silent --show-error --output /tmp/route-body --write-out "%{http_code}" "http://127.0.0.1:3000${route}")
+            if [ "$code" -ne 200 ]; then
+              echo "Route failed: ${route} (HTTP ${code})"
+              cat /tmp/route-body
+              cat /tmp/migration-factory-next.log
+              exit 1
+            fi
+          done

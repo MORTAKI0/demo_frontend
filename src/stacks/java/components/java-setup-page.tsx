@@ -219,7 +219,7 @@ export function JavaSetupPage() {
                 </div>
               ))}
               {error ? (
-                <div className="mt-4 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-xs text-[var(--mf-danger)]">
+                <div role="alert" className="mt-4 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-xs text-[var(--mf-danger)]">
                   {error}
                 </div>
               ) : null}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 
 import { ProductHeader } from "@/components/shared/product-header";
+import { WorkspaceResetButton } from "@/components/shared/workspace-reset-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs } from "@/components/ui/tabs";
 import type {
@@ -11,7 +12,11 @@ import type {
   AngularPreTransformGateId,
   AngularRunModel,
 } from "../domain/run-types";
-import { getAngularRun, putAngularRun } from "../scenarios/angular-store";
+import {
+  getAngularRun,
+  putAngularRun,
+  resetAngularState,
+} from "../scenarios/angular-store";
 import { applyAngularGateDecision } from "../workflow/run";
 import { applyAngularStageGateDecision } from "../workflow/proven";
 import {
@@ -101,8 +106,9 @@ export function AngularControlTowerPage() {
       <ProductHeader
         breadcrumb="Angular / Control Tower"
         actions={
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className="font-mono text-[11px] text-[var(--mf-text-soft)]">{run.id}</span>
+          <div className="flex items-center gap-2">
+            <WorkspaceResetButton onReset={resetAngularState} />
+            <span className="hidden font-mono text-[11px] text-[var(--mf-text-soft)] md:inline">{run.id}</span>
             <StatusBadge label={run.state} />
           </div>
         }
@@ -122,7 +128,7 @@ export function AngularControlTowerPage() {
         <AngularCurrentAction run={run} />
 
         {error ? (
-          <div className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">
+          <div role="alert" className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">
             {error}
           </div>
         ) : null}

@@ -514,8 +514,20 @@ function sealAndAdvance(
     route,
     stageExecution: sealedStage,
     currentGate: null,
+    operations: {
+      ...run.operations,
+      stageHistory: [...run.operations.stageHistory, sealedStage],
+    },
     evidence: [
       ...run.evidence,
+      {
+        id: `${run.id}-${stage.stageId}-promotion`,
+        category: "STAGE",
+        title: `Angular ${stage.source} → ${stage.target} candidate promoted`,
+        summary: "Validated candidate promotion completed before immutable stage sealing.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(`${run.id}:${stage.stageId}:promotion`),
+      },
       {
         id: `${run.id}-${stage.stageId}-seal`,
         category: "SEAL",

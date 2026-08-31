@@ -17,6 +17,10 @@ export function JavaRepairWorkspace({ job }: { job: JavaJobModel }) {
 
   if (job.repair.attempts.length === 0) return null;
 
+  const currentStageAttempts = job.repair.attempts.filter(
+    (attempt) => attempt.stage === job.currentStage,
+  );
+
   function ask() {
     setAnswer(answerJavaRepairAssistant(job, question));
   }
@@ -28,11 +32,13 @@ export function JavaRepairWorkspace({ job }: { job: JavaJobModel }) {
           eyebrow="Governed repair"
           title="Repair Proposer → Reviewer → repair_review"
           description={
-            "Attempts used: " +
-            job.repair.attempts.length +
+            "Current Stage " +
+            job.currentStage +
+            " attempts: " +
+            currentStageAttempts.length +
             " / " +
             job.repair.maxAttempts +
-            ". Prior attempts remain visible after revise or reanalyze."
+            ". Prior stage attempts remain visible after progression."
           }
         />
         <div className="mt-5 space-y-4">
@@ -44,7 +50,7 @@ export function JavaRepairWorkspace({ job }: { job: JavaJobModel }) {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mf-text-soft)]">
-                    Attempt {attempt.attempt}
+                    Stage {attempt.stage} · Attempt {attempt.attempt}
                   </p>
                   <h3 className="mt-1 text-sm font-semibold">{attempt.proposerSummary}</h3>
                 </div>

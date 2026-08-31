@@ -2,8 +2,8 @@
 
 import type { JavaJobSeed } from "../domain/types";
 import type { JavaJobModel } from "../domain/run-types";
-import { createJavaJob, prepareJavaMigration } from "../workflow/setup";
-import { advanceJavaPipeline, createJavaJobModel } from "../workflow/cockpit";
+import { createJavaJobModel } from "../workflow/cockpit";
+import { seedJavaJob } from "./seeds";
 
 const STORAGE_KEY = "migration-factory:java:v1";
 
@@ -19,10 +19,18 @@ function asJobModel(job: JavaJobSeed | JavaJobModel): JavaJobModel {
   const model = "pipeline" in job ? job : createJavaJobModel(job);
   return {
     ...model,
-    repair: model.repair ?? {
-      attempts: [],
-      maxAttempts: 3,
-    },
+    repair: model.repair
+      ? {
+          ...model.repair,
+          attempts: model.repair.attempts.map((attempt) => ({
+            ...attempt,
+            stage: attempt.stage ?? 2,
+          })),
+        }
+      : {
+          attempts: [],
+          maxAttempts: 3,
+        },
     terminalStage4: {
       ...model.terminalStage4,
       outputRevisions: model.terminalStage4.outputRevisions ?? [],
@@ -75,28 +83,7 @@ export function getJavaJob(id: string): JavaJobModel {
     return model;
   }
 
-  const configuration = prepareJavaMigration({
-    name: id === "java-order-service" ? "Order Service" : "Payments Service",
-    sourcePath: "/workspace/order-service",
-    outputParent: "/workspace/migration-output",
-    environmentImport: "Development baseline",
-    sourceProfile: "SB_2_1_J11",
-    targetProfile: "SB_4_0_J21",
-    continuationPolicy: "MANUAL_ON_WARNING_OR_FAILURE",
-    proofLevel: "STRICT",
-  });
-  let model = createJavaJobModel({
-    ...createJavaJob(configuration),
-    id,
-    status: "RUNNING",
-  });
-
-  if (id === "java-order-service") {
-    model = advanceJavaPipeline(model);
-    model = advanceJavaPipeline(model);
-    model = advanceJavaPipeline(model);
-  }
-
+  const model = seedJavaJob(id);
   putJavaJob(model);
   return model;
 }

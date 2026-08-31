@@ -118,6 +118,7 @@ export interface JavaEvidenceRecord {
 
 export interface JavaRepairAttempt {
   id: string;
+  stage: 1 | 2 | 3;
   attempt: number;
   status:
     | "REVIEWED"

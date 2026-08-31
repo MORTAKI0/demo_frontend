@@ -8,6 +8,7 @@ import { textareaClassName } from "@/components/ui/form-field";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { JavaJobModel } from "../domain/run-types";
+import { xlsxTargetVersionsToCsv } from "../workflow/xlsx";
 
 const STANDARD_TARGETS = [
   "groupId,artifactId,targetVersion",
@@ -59,10 +60,17 @@ export function JavaTargetVersionsWorkspace({
     }
 
     if (lower.endsWith(".xlsx")) {
-      setCsv(STANDARD_TARGETS);
-      setInputMessage(
-        "Workbook target profile loaded: " + file.name,
-      );
+      try {
+        const text = await xlsxTargetVersionsToCsv(await file.arrayBuffer());
+        setCsv(text);
+        setInputMessage("Workbook target dependency authority loaded: " + file.name);
+      } catch (caught) {
+        setInputMessage(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to read the selected workbook.",
+        );
+      }
       return;
     }
 

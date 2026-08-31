@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 
 import { ProductHeader } from "@/components/shared/product-header";
+import { WorkspaceResetButton } from "@/components/shared/workspace-reset-button";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -15,7 +16,11 @@ import type {
   JavaPhaseGateType,
 } from "../domain/run-types";
 import type { JavaProfileId } from "../domain/types";
-import { getJavaJob, putJavaJob } from "../scenarios/java-store";
+import {
+  getJavaJob,
+  putJavaJob,
+  resetJavaState,
+} from "../scenarios/java-store";
 import {
   advanceJavaPipeline,
   applyJavaGateDecision,
@@ -184,8 +189,9 @@ export function JavaCockpitPage() {
       <ProductHeader
         breadcrumb="Spring Boot / Control Tower"
         actions={
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className="font-mono text-[11px] text-[var(--mf-text-soft)]">
+          <div className="flex items-center gap-2">
+            <WorkspaceResetButton onReset={resetJavaState} />
+            <span className="hidden font-mono text-[11px] text-[var(--mf-text-soft)] md:inline">
               {job.id}
             </span>
             <StatusBadge label={job.status} />
@@ -220,7 +226,7 @@ export function JavaCockpitPage() {
         <JavaCurrentAction job={job} />
 
         {error ? (
-          <div className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">
+          <div role="alert" className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">
             {error}
           </div>
         ) : null}

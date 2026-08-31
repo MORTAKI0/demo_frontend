@@ -116,7 +116,10 @@ export function answerJavaRepairAssistant(
   question: string,
 ): string {
   const normalized = question.trim().toLowerCase();
-  const latest = job.repair.attempts.at(-1);
+  const stageAttempts = job.repair.attempts.filter(
+    (attempt) => attempt.stage === job.currentStage,
+  );
+  const latest = stageAttempts.at(-1);
 
   if (!latest) {
     return "No Java repair attempt is active. Repair Assistant becomes relevant after build or test validation creates failure evidence.";
@@ -150,10 +153,12 @@ export function answerJavaRepairAssistant(
 
   if (normalized.includes("attempt") || normalized.includes("limit")) {
     return (
-      job.repair.attempts.length +
+      stageAttempts.length +
       " of " +
       job.repair.maxAttempts +
-      " governed repair attempts have been used. Prior attempts remain in the immutable repair history."
+      " governed repair attempts have been used for Java Stage " +
+      job.currentStage +
+      ". Prior stage attempts remain in the immutable repair history."
     );
   }
 

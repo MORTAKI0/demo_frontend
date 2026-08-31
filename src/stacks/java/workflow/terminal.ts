@@ -22,6 +22,40 @@ function dependencyKey(row: {
   return row.groupId + ":" + row.artifactId;
 }
 
+function parseCsvRow(line: string): string[] {
+  const columns: string[] = [];
+  let current = "";
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index]!;
+    if (char === '"') {
+      if (quoted && line[index + 1] === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+
+    if (char === "," && !quoted) {
+      columns.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (quoted) {
+    throw new Error("Target-version CSV contains an unterminated quoted field.");
+  }
+
+  columns.push(current.trim());
+  return columns;
+}
+
 export function parseJavaTargetVersionsCsv(
   csv: string,
 ): JavaTargetVersionRow[] {
@@ -34,9 +68,7 @@ export function parseJavaTargetVersionsCsv(
     throw new Error("Target-version CSV must include a header and at least one dependency row.");
   }
 
-  const header = lines[0]!
-    .split(",")
-    .map((column) => column.trim());
+  const header = parseCsvRow(lines[0]!);
 
   if (
     header.length !== 3 ||
@@ -50,7 +82,7 @@ export function parseJavaTargetVersionsCsv(
   }
 
   const rows = lines.slice(1).map((line, index) => {
-    const columns = line.split(",").map((column) => column.trim());
+    const columns = parseCsvRow(line);
     if (
       columns.length !== 3 ||
       columns.some((column) => column.length === 0)

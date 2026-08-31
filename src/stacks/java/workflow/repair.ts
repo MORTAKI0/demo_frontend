@@ -53,8 +53,13 @@ function buildAttempt(
         ? "Reanalyzed failure evidence and narrowed the repair to the directly failing source surface."
         : "Revised the reviewed source patch according to repair gate feedback.";
 
+  if (job.currentStage !== 1 && job.currentStage !== 2 && job.currentStage !== 3) {
+    throw new Error("Java Stage 4 cannot own a normal repair attempt.");
+  }
+
   return {
-    id: job.id + "-repair-attempt-" + attempt,
+    id: job.id + "-repair-s" + job.currentStage + "-attempt-" + attempt,
+    stage: job.currentStage,
     attempt,
     status: "REVIEWED",
     failureKind: "BUILD_OR_TEST_FAILURE",
@@ -67,7 +72,13 @@ function buildAttempt(
       "- assertThat(result.getLegacyStatus()).isEqualTo(\"READY\");\n" +
       "+ assertThat(result.getStatus()).isEqualTo(\"READY\");",
     checksum: stableDisplayChecksum(
-      job.id + ":repair-attempt:" + attempt + ":" + reason,
+      job.id +
+        ":repair-attempt:" +
+        job.currentStage +
+        ":" +
+        attempt +
+        ":" +
+        reason,
     ),
     createdAt: now,
   };
@@ -80,12 +91,31 @@ export function enterJavaRepair(
   if (job.currentStage !== 1 && job.currentStage !== 2 && job.currentStage !== 3) {
     throw new Error("Normal Java repair is available only for route stages 1–3.");
   }
-  if (job.repair.attempts.length > 0) {
-    throw new Error("A Java repair history already exists for this job.");
+  if (job.currentPhase !== "TEST_VALIDATION" || job.currentGate !== null) {
+    throw new Error(
+      "Java repair can begin only from failed test validation with no unresolved PhaseGate.",
+    );
   }
 
-  const attempt = buildAttempt(job, 1, "INITIAL", now);
-  const gate = repairGate(job, 1);
+  const stageAttempts = job.repair.attempts.filter(
+    (attempt) => attempt.stage === job.currentStage,
+  );
+  if (stageAttempts.length >= job.repair.maxAttempts) {
+    throw new Error(
+      "Maximum governed repair attempts reached for Java Stage " +
+        job.currentStage +
+        ".",
+    );
+  }
+
+  const attemptNumber = stageAttempts.length + 1;
+  const gateRevision =
+    job.phaseGates.filter(
+      (gate) =>
+        gate.type === "repair_review" && gate.stage === job.currentStage,
+    ).length + 1;
+  const attempt = buildAttempt(job, attemptNumber, "INITIAL", now);
+  const gate = repairGate(job, gateRevision);
 
   return {
     ...job,
@@ -95,7 +125,7 @@ export function enterJavaRepair(
     currentAction: "Review proposed repair after build/test failure",
     repair: {
       ...job.repair,
-      attempts: [attempt],
+      attempts: [...job.repair.attempts, attempt],
     },
     phaseGates: [...job.phaseGates, gate],
     stageResults: [
@@ -133,12 +163,47 @@ export function enterJavaRepair(
         category: "REPAIR",
         title: "Repair Proposer + Reviewer",
         summary:
-          "Repair attempt 1 was proposed, independently reviewed, and is ready for repair_review.",
+          "Repair attempt " +
+          attempt.attempt +
+          " for Java Stage " +
+          attempt.stage +
+          " was proposed, independently reviewed, and is ready for repair_review.",
         timestamp: now,
         checksum: attempt.checksum,
       },
     ],
   };
+}
+
+function latestStageAttemptIndex(job: JavaJobModel): number {
+  for (let index = job.repair.attempts.length - 1; index >= 0; index -= 1) {
+    if (job.repair.attempts[index]?.stage === job.currentStage) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function updateLatestStageAttempt(
+  job: JavaJobModel,
+  status: JavaRepairAttempt["status"],
+): JavaRepairAttempt[] {
+  const target = latestStageAttemptIndex(job);
+  if (target < 0) {
+    throw new Error(
+      "No Java repair attempt exists for the current route stage.",
+    );
+  }
+
+  return job.repair.attempts.map((attempt, index) =>
+    index === target ? { ...attempt, status } : attempt,
+  );
+}
+
+function currentStageAttempts(job: JavaJobModel): JavaRepairAttempt[] {
+  return job.repair.attempts.filter(
+    (attempt) => attempt.stage === job.currentStage,
+  );
 }
 
 function updateGate(
@@ -199,11 +264,7 @@ export function applyJavaRepairDecision(
       currentAction: "Repair rejected; migration remains stopped at failed validation",
       repair: {
         ...base.repair,
-        attempts: base.repair.attempts.map((attempt, index, all) =>
-          index === all.length - 1
-            ? { ...attempt, status: "REJECTED" as const }
-            : attempt,
-        ),
+        attempts: updateLatestStageAttempt(base, "REJECTED"),
       },
     };
   }
@@ -217,11 +278,7 @@ export function applyJavaRepairDecision(
       currentAction: "Revalidate applied repair with Maven build and tests",
       repair: {
         ...base.repair,
-        attempts: base.repair.attempts.map((attempt, index, all) =>
-          index === all.length - 1
-            ? { ...attempt, status: "APPLIED" as const }
-            : attempt,
-        ),
+        attempts: updateLatestStageAttempt(base, "APPLIED"),
       },
       pipeline: base.pipeline.map((phase) =>
         phase.id === "REPAIR_FAILURE"
@@ -233,28 +290,35 @@ export function applyJavaRepairDecision(
       evidence: [
         ...base.evidence,
         {
-          id: base.id + "-repair-applied-" + base.repair.attempts.length,
+          id:
+            base.id +
+            "-repair-applied-s" +
+            base.currentStage +
+            "-" +
+            currentStageAttempts(base).length,
           category: "REPAIR",
           title: "Reviewed repair applied",
           summary:
             "The persisted reviewed diff was applied; full build/test revalidation is required before stage progression.",
           timestamp: now,
           checksum: stableDisplayChecksum(
-            base.id + ":repair-applied:" + base.repair.attempts.length,
+            base.id +
+              ":repair-applied:" +
+              base.currentStage +
+              ":" +
+              currentStageAttempts(base).length,
           ),
         },
       ],
     };
   }
 
-  const currentAttempt = base.repair.attempts.at(-1);
-  const superseded = base.repair.attempts.map((attempt, index, all) =>
-    index === all.length - 1
-      ? { ...attempt, status: "SUPERSEDED" as const }
-      : attempt,
+  const superseded = updateLatestStageAttempt(base, "SUPERSEDED");
+  const stageAttempts = superseded.filter(
+    (attempt) => attempt.stage === base.currentStage,
   );
 
-  if (superseded.length >= base.repair.maxAttempts) {
+  if (stageAttempts.length >= base.repair.maxAttempts) {
     return {
       ...base,
       status: "ACTION_REQUIRED",
@@ -268,7 +332,7 @@ export function applyJavaRepairDecision(
     };
   }
 
-  const nextNumber = superseded.length + 1;
+  const nextNumber = stageAttempts.length + 1;
   const nextAttempt = buildAttempt(
     base,
     nextNumber,
@@ -313,7 +377,9 @@ export function markJavaRepairValidated(
   job: JavaJobModel,
   now = "2026-08-31T20:52:00+01:00",
 ): JavaJobModel {
-  const latest = job.repair.attempts.at(-1);
+  const latestIndex = latestStageAttemptIndex(job);
+  const latest =
+    latestIndex >= 0 ? job.repair.attempts[latestIndex] : undefined;
   if (!latest || latest.status !== "APPLIED") {
     throw new Error("A Java repair must be applied before repaired validation can pass.");
   }
@@ -322,11 +388,7 @@ export function markJavaRepairValidated(
     ...job,
     repair: {
       ...job.repair,
-      attempts: job.repair.attempts.map((attempt, index, all) =>
-        index === all.length - 1
-          ? { ...attempt, status: "VALIDATED" as const }
-          : attempt,
-      ),
+      attempts: updateLatestStageAttempt(job, "VALIDATED"),
     },
     evidence: [
       ...job.evidence,

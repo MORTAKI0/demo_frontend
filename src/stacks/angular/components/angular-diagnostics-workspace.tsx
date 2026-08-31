@@ -115,7 +115,7 @@ export function AngularDiagnosticsWorkspace({
             value={run.stageExecution ? `Angular ${run.stageExecution.source} → ${run.stageExecution.target}` : "No active stage"}
           />
           <DetailRow label="Rollback history" value={run.operations.rollbacks.length} />
-          <DetailRow label="Archived executions" value={run.operations.stageHistory.length} />
+          <DetailRow label="Execution history" value={run.operations.stageHistory.length} />
         </dl>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <Button variant="secondary" disabled={!sealed} onClick={onPartialDelivery}>

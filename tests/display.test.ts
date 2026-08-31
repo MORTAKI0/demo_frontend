@@ -13,6 +13,9 @@ test("status tone keeps operational states semantically distinct", () => {
   assert.equal(toneForStatus("FAILED"), "danger");
   assert.equal(toneForStatus("RUNNING"), "info");
   assert.equal(toneForStatus("PENDING"), "neutral");
+  assert.equal(toneForStatus("ELIGIBLE"), "success");
+  assert.equal(toneForStatus("REPAIR_READY"), "warning");
+  assert.equal(toneForStatus("BLOCKED_BY_PROJECT"), "danger");
 });
 
 test("identifier labels are presentation friendly", () => {

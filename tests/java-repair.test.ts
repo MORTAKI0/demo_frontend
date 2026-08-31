@@ -9,6 +9,7 @@ import {
 } from "../src/stacks/java/workflow/cockpit.ts";
 import {
   applyJavaRepairDecision,
+  enterJavaRepair,
 } from "../src/stacks/java/workflow/repair.ts";
 import {
   confirmJavaGatePreview,
@@ -164,4 +165,43 @@ test("cancellation stops active Java work through the Cancellation phase", () =>
     "PASS",
   );
   assert.equal(cancelled.evidence.at(-1)?.category, "CANCELLATION");
+});
+
+
+test("repair attempt limit is scoped to each Java route stage", () => {
+  let model = repairJob();
+  model = applyJavaRepairDecision(model, "CONTINUE");
+  model = advanceJavaPipeline(model);
+
+  assert.equal(model.currentStage, 3);
+  assert.equal(model.repair.attempts[0]?.stage, 2);
+  assert.equal(model.repair.attempts[0]?.status, "VALIDATED");
+
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "analysis_review", "CONTINUE");
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "planning_review", "CONTINUE");
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "approval_review", "APPROVE");
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+
+  assert.equal(model.currentPhase, "TEST_VALIDATION");
+  assert.equal(model.currentGate, null);
+
+  model = enterJavaRepair(model);
+  assert.equal(model.currentStage, 3);
+  assert.equal(model.currentGate, "repair_review");
+  assert.equal(model.repair.attempts.length, 2);
+  assert.equal(model.repair.attempts[1]?.stage, 3);
+  assert.equal(model.repair.attempts[1]?.attempt, 1);
+});
+
+test("repair cannot be entered outside failed test validation", () => {
+  assert.throws(
+    () => enterJavaRepair(job()),
+    /only from failed test validation/,
+  );
 });

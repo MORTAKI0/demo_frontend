@@ -38,6 +38,14 @@ test("clean PROVEN stage goes directly from G07 validation to G12, then promotio
 
   run = applyAngularStageGateDecision(run, "G12", "APPROVE");
   assert.equal(run.route[0]?.status, "SEALED");
+  assert.equal(run.operations.stageHistory.length, 1);
+  assert.equal(run.operations.stageHistory[0]?.candidatePromotion, "PASS");
+  assert.equal(run.operations.stageHistory[0]?.seal, "SEALED");
+  assert.equal(
+    run.evidence.at(-2)?.title,
+    "Angular 11 → 12 candidate promoted",
+  );
+  assert.equal(run.evidence.at(-1)?.category, "SEAL");
   assert.equal(run.stageExecution?.source, 12);
   assert.equal(run.stageExecution?.target, 13);
   assert.equal(run.currentGate, "G07");
@@ -77,6 +85,9 @@ test("repaired stage follows G10 to G11 to G09 to G12 before promotion and seal"
   run = applyAngularStageGateDecision(run, "G12", "APPROVE");
 
   assert.equal(run.route[2]?.status, "SEALED");
+  assert.equal(run.operations.stageHistory.length, 3);
+  assert.equal(run.operations.stageHistory[2]?.candidatePromotion, "PASS");
+  assert.equal(run.operations.stageHistory[2]?.seal, "SEALED");
   assert.equal(run.stageExecution?.source, 14);
   assert.equal(run.stageExecution?.target, 15);
   assert.equal(run.currentGate, "G07");
