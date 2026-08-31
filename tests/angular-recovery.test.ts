@@ -75,8 +75,12 @@ test("rollback preserves the active failed execution in history and returns to s
   assert.equal(rolledBack.route[0]?.status, "SEALED");
   assert.equal(rolledBack.route[1]?.status, "SEALED");
   assert.equal(rolledBack.route[2]?.status, "PENDING");
-  assert.equal(rolledBack.operations.stageHistory.length, 1);
-  assert.equal(rolledBack.operations.stageHistory[0]?.repairAttempts.length, 2);
+  assert.equal(rolledBack.operations.stageHistory.length, 3);
+  assert.equal(rolledBack.operations.stageHistory[0]?.status, "SEALED");
+  assert.equal(rolledBack.operations.stageHistory[1]?.status, "SEALED");
+  assert.equal(rolledBack.operations.stageHistory[2]?.repairAttempts.length, 2);
+  assert.equal(rolledBack.operations.stageHistory[2]?.source, 13);
+  assert.equal(rolledBack.operations.stageHistory[2]?.target, 14);
   assert.equal(rolledBack.operations.rollbacks.at(-1)?.toStageId, "angular-12-to-13");
 });
 

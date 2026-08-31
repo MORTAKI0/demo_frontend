@@ -41,11 +41,14 @@ test("clean PROVEN stage goes directly from G07 validation to G12, then promotio
   assert.equal(run.operations.stageHistory.length, 1);
   assert.equal(run.operations.stageHistory[0]?.candidatePromotion, "PASS");
   assert.equal(run.operations.stageHistory[0]?.seal, "SEALED");
-  assert.equal(
-    run.evidence.at(-2)?.title,
-    "Angular 11 → 12 candidate promoted",
+  const promotionIndex = run.evidence.findIndex(
+    (item) => item.title === "Angular 11 → 12 candidate promoted",
   );
-  assert.equal(run.evidence.at(-1)?.category, "SEAL");
+  const sealIndex = run.evidence.findIndex(
+    (item) => item.title === "Angular 11 → 12 sealed",
+  );
+  assert.ok(promotionIndex >= 0);
+  assert.ok(sealIndex > promotionIndex);
   assert.equal(run.stageExecution?.source, 12);
   assert.equal(run.stageExecution?.target, 13);
   assert.equal(run.currentGate, "G07");

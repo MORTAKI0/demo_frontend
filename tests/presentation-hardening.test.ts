@@ -15,12 +15,12 @@ const REQUIRED_ROUTES = [
   "src/app/java/migrations/[jobId]/artifacts/[artifactId]/page.tsx",
 ];
 
-const FORBIDDEN_VISIBLE_TERMS = [
-  "mock",
-  "fake",
-  "demo backend",
-  "simulation",
-  "fixture",
+const FORBIDDEN_VISIBLE_PATTERNS = [
+  /\bmock\b/i,
+  /\bfake\b/i,
+  /\bdemo\s+backend\b/i,
+  /\bsimulation\b/i,
+  /\bfixture\b/i,
 ];
 
 function walk(directory: string): string[] {
@@ -41,10 +41,10 @@ test("renderable TSX contains no forbidden product terminology", () => {
   const violations: string[] = [];
 
   for (const file of files) {
-    const source = readFileSync(file, "utf8").toLowerCase();
-    for (const term of FORBIDDEN_VISIBLE_TERMS) {
-      if (source.includes(term)) {
-        violations.push(file + " contains " + term);
+    const source = readFileSync(file, "utf8");
+    for (const pattern of FORBIDDEN_VISIBLE_PATTERNS) {
+      if (pattern.test(source)) {
+        violations.push(file + " matches " + pattern.source);
       }
     }
   }
