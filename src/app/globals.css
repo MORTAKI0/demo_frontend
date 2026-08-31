@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --mf-page: #f5f7fa;
+  --mf-surface: #ffffff;
+  --mf-surface-subtle: #f8fafc;
+  --mf-surface-muted: #eef2f6;
+  --mf-text: #172033;
+  --mf-text-muted: #657084;
+  --mf-text-soft: #8a94a6;
+  --mf-border: #dfe5ec;
+  --mf-border-strong: #cbd4df;
+  --mf-primary: #3157d5;
+  --mf-primary-hover: #2748b8;
+  --mf-primary-soft: #edf1ff;
+  --mf-graphite: #0b0e14;
+  --mf-graphite-soft: #141922;
+  --mf-success: #178552;
+  --mf-success-soft: #e9f8f0;
+  --mf-warning: #b8680a;
+  --mf-warning-soft: #fff5df;
+  --mf-danger: #c23c3c;
+  --mf-danger-soft: #fff0f0;
+  --mf-info: #4267cf;
+  --mf-info-soft: #edf2ff;
+  --mf-radius-sm: 8px;
+  --mf-radius-md: 12px;
+  --mf-radius-lg: 16px;
+  --mf-shadow: 0 10px 30px rgba(19, 31, 52, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--mf-page);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--mf-page);
+  color: var(--mf-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #dbe4ff;
+  color: #172033;
+}
+
+.mf-page {
+  min-height: 100vh;
+  background: var(--mf-page);
+}
+
+.mf-container {
+  width: min(1440px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.mf-grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(203, 212, 223, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(203, 212, 223, 0.18) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.mf-scrollbar {
+  scrollbar-color: #b7c0cd transparent;
+  scrollbar-width: thin;
+}
+
+.mf-focus:focus-visible {
+  outline: 3px solid rgba(49, 87, 213, 0.28);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .mf-container {
+    width: min(100% - 28px, 1440px);
+  }
 }
