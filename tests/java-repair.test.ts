@@ -205,3 +205,48 @@ test("repair cannot be entered outside failed test validation", () => {
     /only from failed test validation/,
   );
 });
+
+
+test("a repaired prior stage does not suppress the Stage 2 failure path", () => {
+  let model = job();
+
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "analysis_review", "CONTINUE");
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "planning_review", "CONTINUE");
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "approval_review", "APPROVE");
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+
+  assert.equal(model.currentStage, 1);
+  assert.equal(model.currentPhase, "TEST_VALIDATION");
+
+  model = enterJavaRepair(model);
+  model = applyJavaRepairDecision(model, "CONTINUE");
+  model = advanceJavaPipeline(model);
+
+  assert.equal(model.currentStage, 2);
+  assert.equal(model.repair.attempts[0]?.stage, 1);
+  assert.equal(model.repair.attempts[0]?.status, "VALIDATED");
+
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "analysis_review", "CONTINUE");
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "planning_review", "CONTINUE");
+  model = advanceJavaPipeline(model);
+  model = applyJavaGateDecision(model, "approval_review", "APPROVE");
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+  model = advanceJavaPipeline(model);
+
+  assert.equal(model.currentStage, 2);
+  assert.equal(model.currentGate, "repair_review");
+  assert.equal(model.repair.attempts.length, 2);
+  assert.equal(model.repair.attempts[1]?.stage, 2);
+  assert.equal(model.repair.attempts[1]?.attempt, 1);
+});

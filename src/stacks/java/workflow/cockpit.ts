@@ -344,7 +344,9 @@ export function advanceJavaPipeline(
   }
 
   if (job.currentPhase === "TEST_VALIDATION") {
-    const latestRepair = job.repair.attempts.at(-1);
+    const latestRepair = job.repair.attempts
+      .filter((attempt) => attempt.stage === job.currentStage)
+      .at(-1);
     if (job.currentStage === 2 && !latestRepair) {
       return enterJavaRepair(job, now);
     }
