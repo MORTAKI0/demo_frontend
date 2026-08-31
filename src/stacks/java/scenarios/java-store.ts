@@ -16,7 +16,14 @@ function emptyState(): JavaStoredState {
 }
 
 function asJobModel(job: JavaJobSeed | JavaJobModel): JavaJobModel {
-  return "pipeline" in job ? job : createJavaJobModel(job);
+  const model = "pipeline" in job ? job : createJavaJobModel(job);
+  return {
+    ...model,
+    repair: model.repair ?? {
+      attempts: [],
+      maxAttempts: 3,
+    },
+  };
 }
 
 export function loadJavaState(): JavaStoredState {

@@ -51,6 +51,8 @@ const INFO = new Set([
   "IN_PROGRESS",
   "RESUMING",
   "CANCELLING",
+  "REVIEWED",
+  "APPLIED",
 ]);
 
 export function toneForStatus(status: string): StatusTone {

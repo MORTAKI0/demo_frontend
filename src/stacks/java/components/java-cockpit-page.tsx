@@ -5,9 +5,11 @@ import { useParams } from "next/navigation";
 
 import { ProductHeader } from "@/components/shared/product-header";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs } from "@/components/ui/tabs";
 import type {
+  JavaGateAssistantPreview,
   JavaGateDecision,
   JavaJobModel,
   JavaPhaseGateType,
@@ -18,11 +20,15 @@ import {
   advanceJavaPipeline,
   applyJavaGateDecision,
 } from "../workflow/cockpit";
+import { cancelJavaMigration } from "../workflow/cancellation";
+import { applyJavaRepairDecision } from "../workflow/repair";
 import { JavaCurrentAction } from "./java-current-action";
 import { JavaEvidenceWorkspace } from "./java-evidence-workspace";
+import { JavaGateAssistantPanel } from "./java-gate-assistant-panel";
 import { JavaGateDecisionPanel } from "./java-gate-decision-panel";
 import { JavaOverview } from "./java-overview";
 import { JavaPipeline } from "./java-pipeline";
+import { JavaRepairWorkspace } from "./java-repair-workspace";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -30,12 +36,22 @@ const tabs = [
   { id: "evidence", label: "Evidence" },
 ];
 
+const REPAIR_DECISIONS = [
+  "CONTINUE",
+  "REANALYZE",
+  "REVISE",
+  "REJECT",
+] as const;
+
+type RepairDecision = (typeof REPAIR_DECISIONS)[number];
+
 export function JavaCockpitPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = Array.isArray(params.jobId) ? params.jobId[0] : params.jobId;
   const [job, setJob] = useState<JavaJobModel>(() => getJavaJob(jobId));
   const [active, setActive] = useState("overview");
   const [error, setError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   function persist(next: JavaJobModel) {
     putJavaJob(next);
@@ -48,7 +64,11 @@ export function JavaCockpitPage() {
       persist(advanceJavaPipeline(job));
       setActive("pipeline");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to advance Java pipeline.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to advance Java pipeline.",
+      );
     }
   }
 
@@ -59,10 +79,50 @@ export function JavaCockpitPage() {
   ) {
     try {
       setError(null);
-      persist(applyJavaGateDecision(job, type, decision, options));
+      let next: JavaJobModel;
+      if (type === "repair_review") {
+        if (!REPAIR_DECISIONS.includes(decision as RepairDecision)) {
+          throw new Error(decision + " is not valid for repair_review.");
+        }
+        next = applyJavaRepairDecision(
+          job,
+          decision as RepairDecision,
+          options.comment,
+        );
+      } else {
+        next = applyJavaGateDecision(job, type, decision, options);
+      }
+      persist(next);
       setActive("pipeline");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to apply Java PhaseGate decision.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to apply Java PhaseGate decision.",
+      );
+    }
+  }
+
+  function confirmAssistant(preview: JavaGateAssistantPreview) {
+    decide(preview.gateType, preview.decision, {
+      comment: preview.comment,
+      overrideSourceProfile: preview.overrideSourceProfile,
+    });
+  }
+
+  function confirmCancellation() {
+    try {
+      setError(null);
+      persist(cancelJavaMigration(job));
+      setCancelOpen(false);
+      setActive("pipeline");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to cancel Java migration.",
+      );
+      setCancelOpen(false);
     }
   }
 
@@ -72,13 +132,18 @@ export function JavaCockpitPage() {
     job.currentStage !== 4 &&
     job.currentPhase !== "FINAL_REPORT";
 
+  const canCancel =
+    job.status !== "CANCELLED" && job.status !== "COMPLETED";
+
   return (
     <div className="mf-page">
       <ProductHeader
         breadcrumb="Spring Boot / Control Tower"
         actions={
           <div className="hidden items-center gap-2 sm:flex">
-            <span className="font-mono text-[11px] text-[var(--mf-text-soft)]">{job.id}</span>
+            <span className="font-mono text-[11px] text-[var(--mf-text-soft)]">
+              {job.id}
+            </span>
             <StatusBadge label={job.status} />
           </div>
         }
@@ -89,14 +154,23 @@ export function JavaCockpitPage() {
             <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#355d9a]">
               Spring Boot Migration
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{job.name}</h1>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+              {job.name}
+            </h1>
             <p className="mt-1.5 text-sm text-[var(--mf-text-muted)]">
               Java route stages and execution phases are governed independently.
             </p>
           </div>
-          {canAdvance ? (
-            <Button onClick={advance}>Run next phase</Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {canAdvance ? (
+              <Button onClick={advance}>Run next phase</Button>
+            ) : null}
+            {canCancel ? (
+              <Button variant="danger" onClick={() => setCancelOpen(true)}>
+                Cancel migration
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <JavaCurrentAction job={job} />
@@ -108,19 +182,54 @@ export function JavaCockpitPage() {
         ) : null}
 
         <div className="mt-7">
-          <Tabs items={tabs} active={active} onChange={setActive} ariaLabel="Spring Boot Control Tower workspaces" />
+          <Tabs
+            items={tabs}
+            active={active}
+            onChange={setActive}
+            ariaLabel="Spring Boot Control Tower workspaces"
+          />
         </div>
 
         <div className="mt-6">
           {active === "overview" ? <JavaOverview job={job} /> : null}
-          {active === "pipeline" ? <JavaPipeline job={job} /> : null}
-          {active === "evidence" ? <JavaEvidenceWorkspace job={job} /> : null}
+          {active === "pipeline" ? (
+            <div className="space-y-6">
+              <JavaPipeline job={job} />
+              <JavaRepairWorkspace job={job} />
+            </div>
+          ) : null}
+          {active === "evidence" ? (
+            <JavaEvidenceWorkspace job={job} />
+          ) : null}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 space-y-6">
           <JavaGateDecisionPanel job={job} onDecision={decide} />
+          <JavaGateAssistantPanel job={job} onConfirm={confirmAssistant} />
         </div>
       </main>
+
+      <Dialog
+        open={cancelOpen}
+        title="Cancel migration?"
+        description="Cancellation stops the active Java workflow and clears the current PhaseGate action. Recorded evidence remains available."
+        onClose={() => setCancelOpen(false)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setCancelOpen(false)}>
+              Keep running
+            </Button>
+            <Button variant="danger" onClick={confirmCancellation}>
+              Confirm cancellation
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm leading-6 text-[var(--mf-text-muted)]">
+          Job {job.id} is currently in {job.currentPhase.replaceAll("_", " ")}.
+          Cancellation is recorded as an explicit pipeline event.
+        </p>
+      </Dialog>
     </div>
   );
 }

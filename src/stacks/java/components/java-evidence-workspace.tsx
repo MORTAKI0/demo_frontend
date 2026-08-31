@@ -16,6 +16,9 @@ const FILTERS = [
   "BUILD",
   "TEST",
   "STAGE",
+  "FAILURE",
+  "REPAIR",
+  "CANCELLATION",
 ] as const;
 
 type Filter = (typeof FILTERS)[number];

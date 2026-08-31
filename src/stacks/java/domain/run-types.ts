@@ -61,7 +61,7 @@ export type JavaPipelinePhaseId = (typeof JAVA_PIPELINE_PHASES)[number];
 export interface JavaPipelinePhase {
   id: JavaPipelinePhaseId;
   label: string;
-  status: "PENDING" | "RUNNING" | "PASS" | "ACTION_REQUIRED" | "SKIPPED";
+  status: "PENDING" | "RUNNING" | "PASS" | "FAILED" | "ACTION_REQUIRED" | "SKIPPED";
   detail: string;
 }
 
@@ -105,11 +105,50 @@ export interface JavaEvidenceRecord {
     | "TRANSFORM"
     | "BUILD"
     | "TEST"
-    | "STAGE";
+    | "STAGE"
+    | "FAILURE"
+    | "REPAIR"
+    | "CANCELLATION";
   title: string;
   summary: string;
   timestamp: string;
   checksum: string;
+}
+
+
+export interface JavaRepairAttempt {
+  id: string;
+  attempt: number;
+  status:
+    | "REVIEWED"
+    | "SUPERSEDED"
+    | "APPLIED"
+    | "VALIDATED"
+    | "REJECTED";
+  failureKind: "BUILD_OR_TEST_FAILURE";
+  diagnosis: string;
+  proposerSummary: string;
+  reviewerVerdict: "ACCEPT" | "REQUEST_CHANGES";
+  changedFiles: string[];
+  diff: string;
+  checksum: string;
+  createdAt: string;
+}
+
+export interface JavaRepairState {
+  attempts: JavaRepairAttempt[];
+  maxAttempts: 3;
+}
+
+export interface JavaGateAssistantPreview {
+  gateId: string;
+  gateType: JavaPhaseGateType;
+  gateRevision: number;
+  gateChecksum: string;
+  decision: JavaGateDecision;
+  comment?: string;
+  overrideSourceProfile?: JavaProfileId;
+  actionChecksum: string;
 }
 
 export interface JavaJobModel extends JavaJobSeed {
@@ -123,6 +162,7 @@ export interface JavaJobModel extends JavaJobSeed {
   stageResults: JavaStageResult[];
   evidence: JavaEvidenceRecord[];
   cancellationRequested: boolean;
+  repair: JavaRepairState;
   terminalStage4: {
     active: boolean;
     acceptedOutputRevision: number | null;

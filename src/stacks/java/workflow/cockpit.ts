@@ -13,6 +13,10 @@ import type {
 } from "../domain/run-types.ts";
 import { JAVA_PIPELINE_PHASES } from "../domain/run-types.ts";
 import type { JavaJobSeed } from "../domain/types.ts";
+import {
+  enterJavaRepair,
+  markJavaRepairValidated,
+} from "./repair.ts";
 
 const PHASE_LABELS: Record<JavaPipelinePhaseId, string> = {
   PREFLIGHT: "Preflight",
@@ -151,6 +155,10 @@ export function createJavaJobModel(seed: JavaJobSeed): JavaJobModel {
       },
     ],
     cancellationRequested: false,
+    repair: {
+      attempts: [],
+      maxAttempts: 3,
+    },
     terminalStage4: {
       active: seed.currentStage === 4,
       acceptedOutputRevision: null,
@@ -323,6 +331,13 @@ export function advanceJavaPipeline(
   }
 
   if (job.currentPhase === "TEST_VALIDATION") {
+    const latestRepair = job.repair.attempts.at(-1);
+    if (job.currentStage === 2 && !latestRepair) {
+      return enterJavaRepair(job, now);
+    }
+    if (latestRepair?.status === "APPLIED") {
+      return completeGreenJavaStage(markJavaRepairValidated(job, now), now);
+    }
     return completeGreenJavaStage(job, now);
   }
 
