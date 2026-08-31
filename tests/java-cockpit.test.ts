@@ -164,7 +164,10 @@ test("Java Stage 4 cannot own a normal PhaseGate", () => {
     ...base,
     currentStage: 4 as const,
     currentPhase: "TERMINAL_STAGE_4",
-    terminalStage4: { active: true, acceptedOutputRevision: null },
+    terminalStage4: {
+      ...base.terminalStage4,
+      active: true,
+    },
   };
 
   assert.throws(
