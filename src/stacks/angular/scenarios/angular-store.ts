@@ -1,20 +1,30 @@
 "use client";
 
-import type {
-  AngularPresentationState,
-  AngularPreflight,
-  AngularRunSeed,
-} from "../domain/types";
+import type { AngularPreflight, AngularRunSeed } from "../domain/types";
+import type { AngularRunModel } from "../domain/run-types";
 import {
   applyG01Decision,
   createRunFromApprovedPreflight,
   prepareAngularPreflight,
 } from "../workflow/setup";
+import {
+  applyAngularGateDecision,
+  createAngularRunModel,
+} from "../workflow/run";
+
+interface AngularPresentationState {
+  preflights: Record<string, AngularPreflight>;
+  runs: Record<string, AngularRunModel | AngularRunSeed>;
+}
 
 const STORAGE_KEY = "migration-factory:angular:v1";
 
 function emptyState(): AngularPresentationState {
   return { preflights: {}, runs: {} };
+}
+
+function asRunModel(run: AngularRunModel | AngularRunSeed): AngularRunModel {
+  return "gates" in run ? run : createAngularRunModel(run);
 }
 
 export function loadAngularState(): AngularPresentationState {
@@ -41,9 +51,10 @@ export function putAngularPreflight(preflight: AngularPreflight): AngularPresent
   return next;
 }
 
-export function putAngularRun(run: AngularRunSeed): AngularPresentationState {
+export function putAngularRun(run: AngularRunModel | AngularRunSeed): AngularPresentationState {
   const state = loadAngularState();
-  const next = { ...state, runs: { ...state.runs, [run.id]: run } };
+  const model = asRunModel(run);
+  const next = { ...state, runs: { ...state.runs, [model.id]: model } };
   saveAngularState(next);
   return next;
 }
@@ -56,13 +67,15 @@ export function getAngularPreflight(id: string): AngularPreflight {
   return seeded;
 }
 
-export function getAngularRun(id: string): AngularRunSeed {
+export function getAngularRun(id: string): AngularRunModel {
   const existing = loadAngularState().runs[id];
-  if (existing) return existing;
+  if (existing) {
+    const model = asRunModel(existing);
+    if (!("gates" in existing)) putAngularRun(model);
+    return model;
+  }
 
-  const preflight = seedAngularPreflight("preflight-customer-portal-11-15");
-  const approved = applyG01Decision(preflight, "APPROVE");
-  const seeded = { ...createRunFromApprovedPreflight(approved), id };
+  const seeded = seedAngularRun(id);
   putAngularRun(seeded);
   return seeded;
 }
@@ -76,6 +89,35 @@ export function seedAngularPreflight(id: string): AngularPreflight {
     targetMajor: 15,
   });
   return { ...primary, id };
+}
+
+function approvedRunSeed(): AngularRunSeed {
+  const preflight = seedAngularPreflight("preflight-customer-portal-11-15");
+  const approved = applyG01Decision(preflight, "APPROVE");
+  return createRunFromApprovedPreflight(approved);
+}
+
+export function seedAngularRun(id: string): AngularRunModel {
+  if (id === "run-angular-complete") {
+    const seed = approvedRunSeed();
+    return createAngularRunModel({
+      ...seed,
+      id,
+      state: "COMPLETED",
+      currentGate: null,
+      currentAction: "Requested target achieved",
+    });
+  }
+
+  let model = createAngularRunModel({ ...approvedRunSeed(), id });
+  if (id === "run-angular-action") {
+    model = applyAngularGateDecision(model, "G02", "APPROVE");
+    model = applyAngularGateDecision(model, "G03", "APPROVE");
+    model = applyAngularGateDecision(model, "G04", "APPROVE");
+    model = applyAngularGateDecision(model, "G05", "APPROVE");
+    model = applyAngularGateDecision(model, "G06", "APPROVE");
+  }
+  return model;
 }
 
 export function resetAngularState(): void {

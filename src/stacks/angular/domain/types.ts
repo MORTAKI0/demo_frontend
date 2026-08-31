@@ -1,6 +1,10 @@
 export const ANGULAR_MAJORS = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] as const;
 export type AngularMajor = (typeof ANGULAR_MAJORS)[number];
 
+export type AngularGateId =
+  | "G01" | "G02" | "G03" | "G04" | "G05" | "G06"
+  | "G07" | "G08" | "G09" | "G10" | "G11" | "G12";
+
 export interface AngularRouteStep {
   id: string;
   source: AngularMajor;
@@ -75,14 +79,9 @@ export interface AngularRunSeed {
   sourceMajor: AngularMajor;
   targetMajor: AngularMajor;
   route: AngularRouteStep[];
-  state: "STAGE_CREATED" | "RUNNING" | "COMPLETED";
-  currentGate: "G02" | null;
+  state: "STAGE_CREATED" | "RUNNING" | "BLOCKED" | "COMPLETED" | "CANCELLED";
+  currentGate: AngularGateId | null;
   currentAction: string;
   g01DecisionId: string;
   createdAt: string;
-}
-
-export interface AngularPresentationState {
-  preflights: Record<string, AngularPreflight>;
-  runs: Record<string, AngularRunSeed>;
 }
