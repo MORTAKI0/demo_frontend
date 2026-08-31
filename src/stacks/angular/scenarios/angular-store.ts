@@ -11,6 +11,10 @@ import {
   applyAngularGateDecision,
   createAngularRunModel,
 } from "../workflow/run";
+import {
+  applyAngularStageGateDecision,
+  prepareProvenStage,
+} from "../workflow/proven";
 
 interface AngularPresentationState {
   preflights: Record<string, AngularPreflight>;
@@ -70,8 +74,11 @@ export function getAngularPreflight(id: string): AngularPreflight {
 export function getAngularRun(id: string): AngularRunModel {
   const existing = loadAngularState().runs[id];
   if (existing) {
-    const model = asRunModel(existing);
-    if (!("gates" in existing)) putAngularRun(model);
+    let model = asRunModel(existing);
+    if (model.phase === "STAGE_PREPARATION" && !model.stageExecution) {
+      model = prepareProvenStage(model);
+    }
+    if (!("gates" in existing) || model !== existing) putAngularRun(model);
     return model;
   }
 
@@ -116,6 +123,12 @@ export function seedAngularRun(id: string): AngularRunModel {
     model = applyAngularGateDecision(model, "G04", "APPROVE");
     model = applyAngularGateDecision(model, "G05", "APPROVE");
     model = applyAngularGateDecision(model, "G06", "APPROVE");
+
+    model = applyAngularStageGateDecision(model, "G07", "APPROVE");
+    model = applyAngularStageGateDecision(model, "G12", "APPROVE");
+    model = applyAngularStageGateDecision(model, "G07", "APPROVE");
+    model = applyAngularStageGateDecision(model, "G12", "APPROVE");
+    model = applyAngularStageGateDecision(model, "G07", "APPROVE");
   }
   return model;
 }

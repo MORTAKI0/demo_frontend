@@ -13,12 +13,17 @@ import type {
 } from "../domain/run-types";
 import { getAngularRun, putAngularRun } from "../scenarios/angular-store";
 import { applyAngularGateDecision } from "../workflow/run";
+import { applyAngularStageGateDecision } from "../workflow/proven";
 import { AngularCurrentAction } from "./angular-current-action";
 import { AngularDiagnosticsWorkspace } from "./angular-diagnostics-workspace";
 import { AngularEvidenceWorkspace } from "./angular-evidence-workspace";
 import { AngularGateDecisionPanel } from "./angular-gate-decision-panel";
 import { AngularOverview } from "./angular-overview";
 import { AngularPipeline } from "./angular-pipeline";
+import { AngularProvenExecution } from "./angular-proven-execution";
+import { AngularRepairWorkspace } from "./angular-repair-workspace";
+import { AngularStageDecisionPanel } from "./angular-stage-decision-panel";
+import type { AngularStageGateDecision, AngularStageGateId } from "../domain/run-types";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -47,6 +52,22 @@ export function AngularControlTowerPage() {
       if (decision === "REQUEST_MODIFICATION") setActive("pipeline");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to apply governance decision.");
+    }
+  }
+
+  function handleStageDecision(
+    gate: AngularStageGateId,
+    decision: AngularStageGateDecision,
+    comment: string,
+  ) {
+    try {
+      setError(null);
+      const next = applyAngularStageGateDecision(run, gate, decision, comment);
+      putAngularRun(next);
+      setRun(next);
+      setActive("pipeline");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to apply stage governance decision.");
     }
   }
 
@@ -87,13 +108,20 @@ export function AngularControlTowerPage() {
 
         <div className="mt-6">
           {active === "overview" ? <AngularOverview run={run} /> : null}
-          {active === "pipeline" ? <AngularPipeline run={run} /> : null}
+          {active === "pipeline" ? (
+            <div className="space-y-6">
+              <AngularPipeline run={run} />
+              <AngularProvenExecution run={run} />
+              <AngularRepairWorkspace run={run} />
+            </div>
+          ) : null}
           {active === "evidence" ? <AngularEvidenceWorkspace run={run} /> : null}
           {active === "diagnostics" ? <AngularDiagnosticsWorkspace run={run} /> : null}
         </div>
 
         <div className="mt-6">
           <AngularGateDecisionPanel run={run} onDecision={handleDecision} />
+          <AngularStageDecisionPanel run={run} onDecision={handleStageDecision} />
         </div>
       </main>
     </div>

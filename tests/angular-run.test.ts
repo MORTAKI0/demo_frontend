@@ -61,8 +61,9 @@ test("G02 through G06 preserve the original governed order", () => {
     run = applyAngularGateDecision(run, gate, "APPROVE");
   }
   assert.equal(run.phase, "STAGE_PREPARATION");
-  assert.equal(run.currentGate, null);
-  assert.match(run.currentAction, /certify runtime/);
+  assert.equal(run.currentGate, "G07");
+  assert.equal(run.stageExecution?.runtime.certification, "CERTIFIED");
+  assert.match(run.currentAction, /certified runtime/);
 });
 
 test("planning revision supersedes the previous plan without deleting history", () => {

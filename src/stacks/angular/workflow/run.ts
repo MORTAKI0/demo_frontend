@@ -1,5 +1,6 @@
 import { stableDisplayChecksum } from "../../../scenarios/runtime/checksum.ts";
 import type { AngularRunSeed } from "../domain/types.ts";
+import { prepareProvenStage } from "./proven.ts";
 import type {
   AngularAnalysisModel,
   AngularBaselineModel,
@@ -337,14 +338,14 @@ function progressApprovedGate(
       : revision,
   );
 
-  return {
+  return prepareProvenStage({
     ...run,
     phase: "STAGE_PREPARATION",
     currentGate: null,
     currentAction: `Resolve and certify runtime for Angular ${run.route[0]?.source} → ${run.route[0]?.target}`,
     planning: acceptedPlanning,
     state: "RUNNING",
-  };
+  });
 }
 
 export function markG02Stale(

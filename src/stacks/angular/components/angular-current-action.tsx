@@ -3,7 +3,15 @@ import type { AngularRunModel } from "../domain/run-types";
 
 export function AngularCurrentAction({ run }: { run: AngularRunModel }) {
   const approved = Object.values(run.gates).filter((gate) => gate.status === "APPROVED").length;
-  const currentGate = run.currentGate ? run.gates[run.currentGate as keyof typeof run.gates] : null;
+  const preTransformGate =
+    run.currentGate && ["G02","G03","G04","G05","G06"].includes(run.currentGate)
+      ? run.gates[run.currentGate as keyof typeof run.gates]
+      : null;
+  const stageGate =
+    run.currentGate && run.stageExecution && ["G07","G09","G10","G11","G12"].includes(run.currentGate)
+      ? run.stageExecution.gates[run.currentGate as keyof typeof run.stageExecution.gates]
+      : null;
+  const currentGate = preTransformGate ?? stageGate;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[#202633] bg-[var(--mf-graphite)] text-white shadow-xl">
@@ -33,6 +41,18 @@ export function AngularCurrentAction({ run }: { run: AngularRunModel }) {
             <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7f8a9c]">Phase</dt>
             <dd className="mt-1 text-sm font-semibold">{run.phase.replaceAll("_", " ")}</dd>
           </div>
+          {run.stageExecution ? (
+            <>
+              <div>
+                <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7f8a9c]">Stage</dt>
+                <dd className="mt-1 text-sm font-semibold">Angular {run.stageExecution.source} → {run.stageExecution.target}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7f8a9c]">Validation</dt>
+                <dd className="mt-1 text-sm font-semibold">{run.stageExecution.validation}</dd>
+              </div>
+            </>
+          ) : null}
           <div>
             <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7f8a9c]">Governance</dt>
             <dd className="mt-1 text-sm font-semibold">{approved} / 5 approved</dd>

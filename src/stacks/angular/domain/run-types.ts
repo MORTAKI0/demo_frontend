@@ -1,4 +1,4 @@
-import type { AngularRunSeed } from "./types.ts";
+import type { AngularMajor, AngularRunSeed } from "./types.ts";
 
 export type AngularPreTransformGateId = "G02" | "G03" | "G04" | "G05" | "G06";
 export type AngularGateStatus = "LOCKED" | "PENDING" | "APPROVED" | "MODIFICATION_REQUESTED" | "REJECTED" | "STALE";
@@ -69,9 +69,98 @@ export interface AngularPlanningRevision {
   checksum: string;
 }
 
+export type AngularStageGateId = "G07" | "G09" | "G10" | "G11" | "G12";
+export type AngularStageGateStatus = "LOCKED" | "PENDING" | "APPROVED" | "REJECTED";
+export type AngularStageGateDecision = "APPROVE" | "REQUEST_MODIFICATION" | "REJECT";
+
+export interface AngularStageGateState {
+  id: AngularStageGateId;
+  label: string;
+  status: AngularStageGateStatus;
+  checksum: string;
+  decisions: {
+    id: string;
+    decision: AngularStageGateDecision;
+    timestamp: string;
+    checksum: string;
+    comment?: string;
+  }[];
+}
+
+export type AngularProvenGroupId =
+  | "SOURCE_PROOF"
+  | "DISCOVERY"
+  | "DEPENDENCY_RESOLUTION"
+  | "MIGRATION"
+  | "TARGET_PROOF"
+  | "VALIDATION";
+
+export interface AngularProvenTechnicalStep {
+  id: string;
+  label: string;
+  status: "PENDING" | "PASS" | "FAILED";
+}
+
+export interface AngularProvenGroup {
+  id: AngularProvenGroupId;
+  label: string;
+  status: "PENDING" | "RUNNING" | "PASS" | "FAILED";
+  steps: AngularProvenTechnicalStep[];
+}
+
+export interface AngularRepairAttempt {
+  id: string;
+  attempt: number;
+  status:
+    | "REJECTED_BY_CAUSAL_POLICY"
+    | "REVIEWER_REQUESTED_CHANGES"
+    | "READY_FOR_G10"
+    | "APPLIED"
+    | "VALIDATED";
+  failureCategory: string;
+  proposalKind: "DEPENDENCY_MUTATION" | "SOURCE_PATCH";
+  rationale: string;
+  changedFiles: string[];
+  diff: string;
+  reviewerVerdict: "NOT_REVIEWED" | "REQUEST_CHANGES" | "ACCEPT";
+  causalResult: "PASS" | "REPAIR_CAUSAL_KIND_MISMATCH";
+  risk: "LOW" | "MEDIUM" | "HIGH";
+}
+
+export interface AngularStageExecution {
+  stageId: string;
+  source: AngularMajor;
+  target: AngularMajor;
+  status: "WAITING_G07" | "EXECUTING" | "ACTION_REQUIRED" | "WAITING_COMPLETION" | "SEALED";
+  runtime: {
+    profile: string;
+    resolution: "PASS";
+    certification: "CERTIFIED";
+    dependencyPreflight: "PASS";
+  };
+  gates: Record<AngularStageGateId, AngularStageGateState>;
+  groups: AngularProvenGroup[];
+  validation: "PENDING" | "PASS" | "FAILED";
+  repairAttempts: AngularRepairAttempt[];
+  candidatePromotion: "PENDING" | "PASS";
+  seal: "PENDING" | "SEALED";
+}
+
 export interface AngularRunEvidence {
   id: string;
-  category: "DECISION" | "BASELINE" | "ANALYSIS" | "FEASIBILITY" | "PLANNING" | "SOURCE";
+  category:
+    | "DECISION"
+    | "BASELINE"
+    | "ANALYSIS"
+    | "FEASIBILITY"
+    | "PLANNING"
+    | "SOURCE"
+    | "STAGE"
+    | "FAILURE"
+    | "REPAIR"
+    | "VALIDATION"
+    | "SEAL"
+    | "COMMAND";
   title: string;
   summary: string;
   timestamp: string;
@@ -85,6 +174,8 @@ export type AngularRunPhase =
   | "FEASIBILITY"
   | "PLANNING"
   | "STAGE_PREPARATION"
+  | "TRANSFORMATION"
+  | "REPAIR"
   | "COMPLETE"
   | "BLOCKED";
 
@@ -97,4 +188,5 @@ export interface AngularRunModel extends AngularRunSeed {
   planning: AngularPlanningRevision[];
   evidence: AngularRunEvidence[];
   diagnostics: string[];
+  stageExecution?: AngularStageExecution;
 }
