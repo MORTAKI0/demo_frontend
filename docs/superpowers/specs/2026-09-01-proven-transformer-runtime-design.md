@@ -434,28 +434,58 @@ Displayed separately:
 
 Build/test duration must be meaningful and individually visible.
 
-### 6.7 Promotion & Seal
+### 6.7 Post-validation authority & seal
 
-Nodes:
+This phase is **policy-selected**. There are two source-backed paths and the frontend must not merge them into one universal sequence.
 
-- `promote_validated`
-- `promotion_pending`
-- policy-selected post-validation gate
-- seal
-- next-stage materialization
+#### Reference E2E G11 path
 
-Visible evidence:
+The persisted 18→21 proof used:
 
-- promotion decision
-- promoted generation
-- clean sealing context
-- output manifest
-- seal checkpoint
-- previous seal hash
-- stage seal hash
-- chain checksum
-- immutable sealed output
-- next stage input authority
+```text
+G07
+→ transformation
+→ G08
+→ final validation
+→ G11
+→ seal
+```
+
+No candidate-promotion record is required to represent this observed route.
+
+#### G09/G12 candidate-promotion path
+
+The V2 candidate-promotion service is a separate policy path. `promote_validated_generation()` explicitly requires:
+
+- a PASS ValidationSummary;
+- an approved G12 package;
+- the same bound workspace generation;
+- fingerprint equality between G12, the validation summary, and the live candidate.
+
+Only then may the generation be promoted.
+
+Visible evidence when this path is selected:
+
+- G09/G12 package lineage as required by the plan;
+- validation-summary binding;
+- candidate generation;
+- promotion decision;
+- blockers if rejected;
+- promoted generation ID;
+- promotion artifact.
+
+Both paths then converge on sealing:
+
+- clean sealing context;
+- output manifest;
+- seal checkpoint;
+- previous seal hash;
+- stage seal hash;
+- chain checksum;
+- immutable sealed output;
+- next-stage input authority.
+
+The UI must never render candidate promotion on the reference G11-direct-seal path unless the selected plan actually requires it.
 
 ## 7. Gate policy
 
@@ -524,7 +554,7 @@ Representative command envelopes:
 | validation build | 30–55s |
 | validation tests | 25–50s |
 | diagnostic delta + aggregate | 10–20s |
-| promotion + seal | 20–40s |
+| post-validation authority + seal | 20–40s |
 
 The exact deterministic value is derived from:
 
@@ -583,7 +613,7 @@ Example phase weights:
 | Target Authority & Materialization | 22 |
 | Migration Owners | 15 |
 | Clean Validation | 20 |
-| Promotion & Seal | 6 |
+| Post-validation authority & seal | 6 |
 
 Within a phase, weight is distributed across nodes.
 
@@ -829,23 +859,42 @@ Each generation has:
 
 ## 17. Failure classification
 
-Before repair, a deterministic classifier runs.
+Before repair, deterministic evidence-first ownership runs.
 
-Supported source-backed categories include:
+The current V2.3 source contract is phase-first. The persisted `FailureDecision` uses these proven phases:
 
-- environment transient
-- environment permanent
-- dependency incompatible
-- package export incompatible
-- Angular update peer conflict
-- repairable source
-- unexpected prompt
-- policy violation
-- non-repairable validation
-- unknown failure
-- no progress
+- `HARNESS`
+- `RUNTIME`
+- `DEPENDENCY`
+- `LOCKFILE`
+- `DETERMINISTIC_SOURCE`
+- `MAIN_REPAIR`
 
-Failure evidence appears before LLM activity.
+The deterministic phase-to-owner mapping is:
+
+| Phase | Owner |
+|---|---|
+| HARNESS | PLATFORM_RECOVERY |
+| RUNTIME | RUNTIME_RESOLVER |
+| DEPENDENCY | COMPATIBILITY_PLANNER |
+| LOCKFILE | LOCK_RESOLVER |
+| DETERMINISTIC_SOURCE | DETERMINISTIC_REPAIR |
+| MAIN_REPAIR | MAIN_REPAIR_LLM |
+
+Structured evidence codes decide ownership before free-form stderr/message interpretation. Source-backed examples include:
+
+- `PACKAGE_LOCK_MALFORMED_PARSER`, `COMMAND_WORKER_LOST` → HARNESS;
+- `ANGULAR_CLI_AUTHORITY_MISMATCH`, `RUNTIME_DESCRIPTOR_MISMATCH`, `ENGINES_INCOMPATIBLE` → RUNTIME;
+- `ETARGET`, `PEER_CONFLICT_FROM_NPM`, `NPM_SOLVER_FAILURE`, `NPM_TREE_INVALID` → DEPENDENCY;
+- `PACKAGE_LOCK_MISSING`, `LOCK_CONVERGENCE_EXHAUSTED`, `NPM_CI_REJECTED_CONVERGED_LOCK` → LOCKFILE.
+
+The non-source-repair phases `HARNESS`, `RUNTIME`, `DEPENDENCY`, and `LOCKFILE` must **not** be routed to the source Repair LLM.
+
+Only a failure owned by `MAIN_REPAIR_LLM` enters the Main Repair LLM path. `DETERMINISTIC_SOURCE` stays backend-owned. Unknown/unmatched structured evidence may fall back to `MAIN_REPAIR` with the upstream low-confidence/human-escalation semantics preserved.
+
+No-progress detection remains a separate repair-loop safety mechanism; it is not a failure-owner phase.
+
+Failure evidence and the persisted ownership decision appear before any LLM activity.
 
 ## 18. Repair workflow
 
@@ -1097,23 +1146,48 @@ Later exact stage plans are derived from the preceding sealed output.
 
 Purpose:
 
-- deepest Transformer presentation
-- real repair lineage
-- final operational statistics
-- seal chain
-- long-run persistence/reload
+- deepest Transformer presentation;
+- real repair lineage;
+- actual gate route evidence;
+- final operational statistics;
+- seal chain;
+- long-run persistence/reload.
 
 Reference metrics:
 
-- 3 sealed stages
-- 49 command executions
-- 629 workflow events
-- 499 immutable artifacts
-- 7 repair attempts
-- 18 LLM invocations
-- approximately 1h26m51s elapsed in the persisted proof
+- 3 sealed stages;
+- 49 command executions;
+- 629 workflow events;
+- 499 immutable artifacts;
+- 7 repair attempts;
+- 18 completed LLM invocations;
+- approximately 1h26m51s elapsed in the persisted proof.
 
-These metrics are labeled as reference-run evidence, not universal averages.
+Reference gate route:
+
+- G07 and G08 on every stage;
+- G10 when repair was required;
+- G11 on every stage;
+- no latest-run G09/G12 rows.
+
+#### Historical-trace versus current-PROVEN rule
+
+The persisted proof is historical runtime evidence. Its command history includes a governed Angular-update execution in the stage trace.
+
+That historical fact must remain available when the UI shows **reference-run evidence**.
+
+It must **not** become the execution authority for the current default Transformer scenario.
+
+The default current scenario follows the present PROVEN semantic model described in this spec: source baseline, disposable discovery, target intent/materialization, migration-owner ledger, clean validation, policy-selected gates, and sealing.
+
+Therefore:
+
+- historical-reference panels may display the actual observed Angular-update command as historical evidence;
+- current-PROVEN execution panels must not collapse an entire stage into one generic `ng update Angular X → Y` command;
+- reference metrics/repair lineage may be reused only where they are explicitly labeled as reference-run evidence;
+- a future exact historical-replay mode would require its own scenario definition rather than silently mixing historical command traces with the current PROVEN node catalogue.
+
+These metrics are reference-run evidence, not universal averages.
 
 ## 28. Stage-specific runtime/cohort data
 
