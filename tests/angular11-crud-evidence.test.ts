@@ -36,14 +36,13 @@ test("Angular demo source review matches cornflourblue angular-11-crud-example",
   assert.equal(preflight.sourceAnalysis.crudOperations, 5);
 });
 
-test("G03 baseline execution lasts 17-19 seconds and proves the real Angular 11 CRUD source", () => {
+test("G03 baseline execution stays observable for at least 30 seconds and proves the real Angular 11 CRUD source", () => {
   const execution = createAngularLiveExecution("BASELINE", 1_900_000_000_000);
   const duration = liveExecutionDuration(execution);
   const allLogs = execution.steps.flatMap((step) => step.logs).join("\n");
   const commands = execution.steps.map((step) => step.command).filter(Boolean);
 
-  assert.ok(duration >= 17_000, "baseline must last at least 17 seconds");
-  assert.ok(duration <= 19_000, "baseline must finish within 19 seconds");
+  assert.ok(duration >= 30_000, "baseline must last at least 30 seconds");
   assert.match(allLogs, /angular-crud-example/);
   assert.match(allLogs, /Angular 11\.0\.4/);
   assert.match(allLogs, /Angular CLI 11\.0\.4/);
@@ -58,14 +57,13 @@ test("G03 baseline execution lasts 17-19 seconds and proves the real Angular 11 
   assert.ok(commands.includes("npm run lint"));
 });
 
-test("G04 analysis execution lasts 18-20 seconds and visibly scans the real CRUD architecture", () => {
+test("G04 analysis execution stays observable for at least 30 seconds and visibly scans the real CRUD architecture", () => {
   const execution = createAngularLiveExecution("ANALYSIS", 1_900_000_000_000);
   const duration = liveExecutionDuration(execution);
   const nodes = execution.steps.map((step) => step.node);
   const logs = execution.steps.flatMap((step) => step.logs).join("\n");
 
-  assert.ok(duration >= 18_000, "analysis must last at least 18 seconds");
-  assert.ok(duration <= 20_000, "analysis must finish within 20 seconds");
+  assert.ok(duration >= 30_000, "analysis must last at least 30 seconds");
 
   assert.ok(nodes.includes("analysis.topology_scan"));
   assert.ok(nodes.includes("analysis.route_service_scan"));
