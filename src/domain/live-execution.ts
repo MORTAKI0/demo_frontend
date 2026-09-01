@@ -48,6 +48,29 @@ export function liveExecutionDuration<K extends string>(
   return execution.steps.reduce((total, step) => total + step.durationMs, 0);
 }
 
+export function paceLiveExecution<K extends string>(
+  execution: LiveExecution<K>,
+  targetDurationMs: number,
+): LiveExecution<K> {
+  const currentDuration = liveExecutionDuration(execution);
+  if (currentDuration >= targetDurationMs || execution.steps.length === 0) {
+    return execution;
+  }
+
+  const scale = targetDurationMs / currentDuration;
+  let allocated = 0;
+  const steps = execution.steps.map((step, index) => {
+    const isLast = index === execution.steps.length - 1;
+    const durationMs = isLast
+      ? targetDurationMs - allocated
+      : Math.max(1, Math.round(step.durationMs * scale));
+    allocated += durationMs;
+    return { ...step, durationMs };
+  });
+
+  return { ...execution, steps };
+}
+
 export function projectLiveExecution<K extends string>(
   execution: LiveExecution<K>,
   nowMs: number,
