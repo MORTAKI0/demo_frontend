@@ -18,7 +18,6 @@ export function LiveExecutionPanel({
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
-    setNowMs(Date.now());
     const timer = window.setInterval(() => setNowMs(Date.now()), 250);
     return () => window.clearInterval(timer);
   }, [execution.id]);

@@ -52,8 +52,10 @@ export function AngularControlTowerPage() {
   const [active, setActive] = useState("overview");
   const [error, setError] = useState<string | null>(null);
 
+  const liveExecution = run.liveExecution;
+
   useEffect(() => {
-    if (!run.liveExecution) return;
+    if (!liveExecution) return;
 
     const timer = window.setInterval(() => {
       setRun((current) => {
@@ -66,7 +68,7 @@ export function AngularControlTowerPage() {
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [run.liveExecution?.id]);
+  }, [liveExecution]);
 
   function handleDecision(
     gate: AngularPreTransformGateId,

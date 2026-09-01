@@ -65,17 +65,19 @@ type RepairDecision = (typeof REPAIR_DECISIONS)[number];
 export function JavaCockpitPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = Array.isArray(params.jobId) ? params.jobId[0] : params.jobId;
-  const [job, setJob] = useState<JavaJobModel>(() =>
-    ensureJavaLiveExecution(getJavaJob(jobId), Date.now()),
-  );
+  const [job, setJob] = useState<JavaJobModel>(() => {
+    const initialized = ensureJavaLiveExecution(getJavaJob(jobId), Date.now());
+    if (initialized.liveExecution) putJavaJob(initialized);
+    return initialized;
+  });
   const [active, setActive] = useState("overview");
   const [error, setError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
 
-  useEffect(() => {
-    if (!job.liveExecution) return;
+  const liveExecution = job.liveExecution;
 
-    putJavaJob(job);
+  useEffect(() => {
+    if (!liveExecution) return;
 
     const timer = window.setInterval(() => {
       setJob((current) => {
@@ -88,7 +90,7 @@ export function JavaCockpitPage() {
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [job.liveExecution?.id]);
+  }, [liveExecution]);
 
   function persist(next: JavaJobModel) {
     putJavaJob(next);

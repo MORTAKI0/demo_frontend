@@ -1,8 +1,5 @@
 import { liveExecutionDuration } from "../../../domain/live-execution.ts";
-import type {
-  AngularLiveExecution,
-  AngularRunModel,
-} from "../domain/run-types.ts";
+import type { AngularRunModel } from "../domain/run-types.ts";
 import {
   completeAngularAnalysisExecution,
   completeAngularBaselineExecution,
