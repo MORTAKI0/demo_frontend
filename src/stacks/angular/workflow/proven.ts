@@ -318,6 +318,80 @@ export function applyAngularStageGateDecision(
 
   if (decision === "REQUEST_MODIFICATION") {
     if (gateId === "G07") {
+      return {
+        ...run,
+        currentAction: "Review revised stage-start evidence",
+        diagnostics: [
+          ...run.diagnostics,
+          "G07 revision requested; runtime binding remains unchanged until refreshed evidence is reviewed.",
+        ],
+      };
+    }
+
+    const current = stage.repairAttempts.at(-1);
+    const attempts = stage.repairAttempts.map((attempt, index, all) =>
+      index === all.length - 1
+        ? { ...attempt, status: "REVIEWER_REQUESTED_CHANGES" as const }
+        : attempt,
+    );
+
+    if (attempts.length >= 3) {
+      return {
+        ...run,
+        state: "BLOCKED",
+        phase: "BLOCKED",
+        currentAction: "Repair attempt policy exhausted",
+        diagnostics: [
+          ...run.diagnostics,
+          "Maximum governed repair attempts reached.",
+        ],
+      };
+    }
+
+    const attempt = attempts.length + 1;
+    attempts.push({
+      id: `${stage.stageId}-repair-${attempt}`,
+      attempt,
+      status: "READY_FOR_G10",
+      failureCategory:
+        current?.failureCategory ?? "TEST_OR_BUILD_REGRESSION",
+      proposalKind: "SOURCE_PATCH",
+      rationale:
+        comment.trim() ||
+        "Revised source patch incorporates reviewer feedback.",
+      changedFiles: ["src/app/order.service.spec.ts"],
+      diff: "- legacy expectation\n+ reviewed compatibility expectation",
+      reviewerVerdict: "ACCEPT",
+      causalResult: "PASS",
+      risk: "MEDIUM",
+    });
+
+    return {
+      ...run,
+      currentAction: "Review revised repair proposal",
+      stageExecution: { ...stage, repairAttempts: attempts },
+    };
+  }
+
+  const decidedStage = approveGate(
+    stage,
+    gateId,
+    decision,
+    comment,
+    now,
+  );
+
+  if (decision === "REJECT") {
+    return {
+      ...run,
+      state: "BLOCKED",
+      phase: "BLOCKED",
+      currentAction: `Migration blocked by ${gateId} rejection`,
+      stageExecution: decidedStage,
+    };
+  }
+
+  if (gateId === "G07") {
     const executing: AngularStageExecution = {
       ...decidedStage,
       status: "EXECUTING",
@@ -329,7 +403,8 @@ export function applyAngularStageGateDecision(
       state: "RUNNING",
       phase: "TRANSFORMATION",
       currentGate: null,
-      currentAction: `Executing PROVEN Angular ${stage.source} → ${stage.target} migration`,
+      currentAction:
+        `Executing PROVEN Angular ${stage.source} → ${stage.target} migration`,
       route: run.route.map((step) =>
         step.id === stage.stageId
           ? { ...step, status: "RUNNING" as const }
@@ -345,16 +420,18 @@ export function applyAngularStageGateDecision(
   }
 
   if (gateId === "G10") {
-    const attempts = decidedStage.repairAttempts.map((attempt, index, all) =>
-      index === all.length - 1
-        ? { ...attempt, status: "APPLIED" as const }
-        : attempt,
+    const attempts = decidedStage.repairAttempts.map(
+      (attempt, index, all) =>
+        index === all.length - 1
+          ? { ...attempt, status: "APPLIED" as const }
+          : attempt,
     );
     return {
       ...run,
       phase: "REPAIR",
       currentGate: null,
-      currentAction: "Applying reviewed repair and running clean validation",
+      currentAction:
+        "Applying reviewed repair and running clean validation",
       stageExecution: {
         ...decidedStage,
         status: "EXECUTING",
@@ -388,7 +465,12 @@ export function applyAngularStageGateDecision(
     };
   }
 
-  return sealAndAdvance(run, decidedStage, now, runtimeStartedAtMs);
+  return sealAndAdvance(
+    run,
+    decidedStage,
+    now,
+    runtimeStartedAtMs,
+  );
 }
 
 export function completeAngularApprovedStageExecution(
