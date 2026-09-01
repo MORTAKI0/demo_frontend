@@ -74,8 +74,6 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                       </div>
                     </details>
                   ) : null}
-                    </div>
-                  ) : null}
                 </div>
               );
             })}
