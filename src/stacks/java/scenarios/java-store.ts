@@ -5,7 +5,7 @@ import type { JavaJobModel } from "../domain/run-types";
 import { createJavaJobModel } from "../workflow/cockpit";
 import { seedJavaJob } from "./seeds";
 
-const STORAGE_KEY = "migration-factory:java:v2";
+const STORAGE_KEY = "migration-factory:java:v3";
 
 interface JavaStoredState {
   jobs: Record<string, JavaJobSeed | JavaJobModel>;
