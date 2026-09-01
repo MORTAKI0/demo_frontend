@@ -31,29 +31,49 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                     <StatusBadge label={gate.status} />
                   </div>
                   {gateId === "G03" && run.baseline.outcome !== "PENDING" ? (
-                    <div className="mt-4">
-                      <div className="grid gap-2 md:grid-cols-3">
-                        {run.baseline.steps.map((step) => (
-                          <div key={step.id} className="rounded-md bg-[var(--mf-surface-subtle)] px-3 py-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-semibold">{step.label}</span>
-                              <StatusBadge label={step.status} />
-                            </div>
+                    <details
+                      open={run.currentGate === "G03"}
+                      className="mt-4 rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)]"
+                    >
+                      <summary className="cursor-pointer list-none px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-semibold">Baseline phase detail</p>
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">
+                              {run.currentGate === "G03"
+                                ? "Current baseline review detail"
+                                : "Completed baseline detail · click to reopen"}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                      {run.baseline.knownGaps.length > 0 ? (
-                        <div className="mt-3 rounded-lg border border-[#f1d69d] bg-[var(--mf-warning-soft)] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-warning)]">
-                            Baseline coverage gaps
-                          </p>
-                          <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)]">
-                            {run.baseline.knownGaps.map((item) => (
-                              <li key={item}>• {item}</li>
-                            ))}
-                          </ul>
+                          <StatusBadge label={run.baseline.outcome} />
                         </div>
-                      ) : null}
+                      </summary>
+                      <div className="border-t border-[var(--mf-border)] p-3">
+                        <div className="grid gap-2 md:grid-cols-3">
+                          {run.baseline.steps.map((step) => (
+                            <div key={step.id} className="rounded-md bg-white px-3 py-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-semibold">{step.label}</span>
+                                <StatusBadge label={step.status} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {run.baseline.knownGaps.length > 0 ? (
+                          <div className="mt-3 rounded-lg border border-[#f1d69d] bg-[var(--mf-warning-soft)] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-warning)]">
+                              Baseline coverage gaps
+                            </p>
+                            <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)]">
+                              {run.baseline.knownGaps.map((item) => (
+                                <li key={item}>• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    </details>
+                  ) : null}
                     </div>
                   ) : null}
                 </div>
