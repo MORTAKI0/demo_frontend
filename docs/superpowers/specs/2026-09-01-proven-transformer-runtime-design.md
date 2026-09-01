@@ -901,24 +901,46 @@ Failure evidence and the persisted ownership decision appear before any LLM acti
 
 ## 18. Repair workflow
 
-### 18.1 Normal cadence
+### 18.1 Ownership-first cadence
+
+Every failure first follows the persisted ownership decision.
 
 ```text
 command fails
 → freeze failure evidence
-→ deterministic classification
-→ build bounded context
-→ Main LLM proposer
-→ proposal schema validation
-→ causal review
-→ independent reviewer
-→ G10
-→ deterministic apply
-→ verify post-state
-→ affected validation
-→ full validation replay
-→ G11
+→ persist deterministic FailureDecision
+→ branch by owner
+
+HARNESS
+  → PLATFORM_RECOVERY
+
+RUNTIME
+  → RUNTIME_RESOLVER
+
+DEPENDENCY
+  → COMPATIBILITY_PLANNER
+
+LOCKFILE
+  → LOCK_RESOLVER
+
+DETERMINISTIC_SOURCE
+  → DETERMINISTIC_REPAIR
+
+MAIN_REPAIR
+  → build bounded context
+  → Main Repair LLM proposer
+  → proposal schema validation
+  → causal review
+  → independent reviewer
+  → G10
+  → deterministic apply
+  → verify post-state
+  → affected validation
+  → full validation replay
+  → G11
 ```
+
+A dependency or lockfile failure is therefore not sent to the source Repair LLM merely because stderr contains package-manager text. The deterministic owner decides the next subsystem. If that subsystem later creates a governed repair package, its lineage is displayed as a separate deterministic/governed operation rather than pretending the Main Repair LLM owned the original failure.
 
 ### 18.2 Repair types
 
@@ -1258,6 +1280,14 @@ Persist:
 - cancellation state
 
 Events are deterministically regenerated from the scenario definition.
+
+### Human-boundary clock rule
+
+While a runtime is actively executing a non-human node, wall-clock time may continue to advance even if the browser tab is hidden or the page is temporarily closed. Reopening the page may therefore reveal additional command/events that would have occurred while the backend worker continued.
+
+The deterministic projector must, however, **hard-stop at every human boundary**.
+
+It may not generate events after G07/G08/G09/G10/G11/G12 until the corresponding persisted decision exists. A long browser absence can never auto-approve a gate or silently continue mutation beyond a human decision.
 
 Benefits:
 
@@ -1641,7 +1671,8 @@ The work is complete only when all of the following are true:
 25. Final Transformer completion does not falsely claim delivery.
 26. The Angular 11 CRUD application facts remain source-grounded.
 27. Runtime evidence terminology distinguishes observed/proven from formally certified.
-28. Full CI passes on the feature branch and again after integration into `main`.
+28. Wall-clock catch-up never crosses a human gate without the persisted decision.
+29. Full CI passes on the feature branch and again after integration into `main`.
 
 ## 40. Design invariants
 
@@ -1649,7 +1680,7 @@ These are non-negotiable:
 
 - backend/workflow semantics beat visual convenience;
 - no raw shell authority;
-- no direct source mutation;
+- no mutation of the immutable input/source authority; all mutations occur only inside governed stage generations/workspaces;
 - no one-shot generic Angular update representation as current stage authority; historical reference evidence may show the observed governed Angular-update command from the persisted proof;
 - no progress fabricated from unsupported command percentages;
 - no gate invented by frontend state;
