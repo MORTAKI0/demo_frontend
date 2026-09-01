@@ -56,8 +56,8 @@ test("G02 approval runs baseline before opening G03", () => {
 
   const next = finishLive(running);
   assert.equal(next.currentGate, "G03");
-  assert.equal(next.baseline.outcome, "QUALIFIED_WITH_KNOWN_FAILURES");
-  assert.ok(next.baseline.steps.every((step) => ["PASS", "KNOWN_FAILURES"].includes(step.status)));
+  assert.equal(next.baseline.outcome, "QUALIFIED_WITH_GAPS");
+  assert.ok(next.baseline.steps.every((step) => ["PASS", "COVERAGE_GAP"].includes(step.status)));
 });
 
 test("G02 staleness invalidates the active review evidence", () => {

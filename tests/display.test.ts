@@ -16,6 +16,8 @@ test("status tone keeps operational states semantically distinct", () => {
   assert.equal(toneForStatus("ELIGIBLE"), "success");
   assert.equal(toneForStatus("REPAIR_READY"), "warning");
   assert.equal(toneForStatus("BLOCKED_BY_PROJECT"), "danger");
+  assert.equal(toneForStatus("QUALIFIED_WITH_GAPS"), "warning");
+  assert.equal(toneForStatus("COVERAGE_GAP"), "warning");
 });
 
 test("identifier labels are presentation friendly", () => {

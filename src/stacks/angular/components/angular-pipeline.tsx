@@ -41,13 +41,13 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                           </div>
                         ))}
                       </div>
-                      {run.baseline.knownFailures.length > 0 ? (
+                      {run.baseline.knownGaps.length > 0 ? (
                         <div className="mt-3 rounded-lg border border-[#f1d69d] bg-[var(--mf-warning-soft)] p-3">
                           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-warning)]">
-                            Baseline coverage facts
+                            Baseline coverage gaps
                           </p>
                           <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)]">
-                            {run.baseline.knownFailures.map((item) => (
+                            {run.baseline.knownGaps.map((item) => (
                               <li key={item}>• {item}</li>
                             ))}
                           </ul>

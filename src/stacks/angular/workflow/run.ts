@@ -81,6 +81,7 @@ function initialBaseline(): AngularBaselineModel {
   return {
     outcome: "PENDING",
     knownFailures: [],
+    knownGaps: [],
     steps: [
       { id: "workspace", label: "Create baseline workspace", status: "PENDING", detail: "Read-only source copied into isolated baseline authority." },
       { id: "prequalify", label: "Prequalify baseline", status: "PENDING", detail: "Project and environment eligibility checked before install." },
@@ -185,14 +186,15 @@ export function createAngularRunModel(seed: AngularRunSeed): AngularRunModel {
 
 export function completedBaseline(): AngularBaselineModel {
   return {
-    outcome: "QUALIFIED_WITH_KNOWN_FAILURES",
-    knownFailures: [
+    outcome: "QUALIFIED_WITH_GAPS",
+    knownFailures: [],
+    knownGaps: [
       "Karma/Jasmine/Chrome harness is configured, but no src/**/*.spec.ts unit specs exist in the source revision.",
       "Protractor 7 E2E coverage exists and is recorded as legacy test authority for later migration.",
     ],
     steps: initialBaseline().steps.map((step) => ({
       ...step,
-      status: step.id === "tests" ? "KNOWN_FAILURES" as const : "PASS" as const,
+      status: step.id === "tests" ? "COVERAGE_GAP" as const : "PASS" as const,
     })),
   };
 }

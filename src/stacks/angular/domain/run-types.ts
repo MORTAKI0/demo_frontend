@@ -28,6 +28,7 @@ export type AngularBaselineOutcome =
   | "PENDING"
   | "QUALIFIED"
   | "QUALIFIED_WITH_KNOWN_FAILURES"
+  | "QUALIFIED_WITH_GAPS"
   | "REPRODUCIBILITY_DEGRADED"
   | "BLOCKED_BY_ENVIRONMENT"
   | "BLOCKED_BY_PROJECT";
@@ -35,13 +36,14 @@ export type AngularBaselineOutcome =
 export interface AngularBaselineStep {
   id: string;
   label: string;
-  status: "PENDING" | "PASS" | "KNOWN_FAILURES" | "BLOCKED";
+  status: "PENDING" | "PASS" | "KNOWN_FAILURES" | "COVERAGE_GAP" | "BLOCKED";
   detail: string;
 }
 
 export interface AngularBaselineModel {
   outcome: AngularBaselineOutcome;
   knownFailures: string[];
+  knownGaps: string[];
   steps: AngularBaselineStep[];
 }
 

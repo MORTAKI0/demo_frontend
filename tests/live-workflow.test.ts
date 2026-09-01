@@ -132,7 +132,7 @@ test("G02 approval starts baseline execution instead of immediately exposing G03
 
   const completed = finishAngularExecution(run);
   assert.equal(completed.currentGate, "G03");
-  assert.equal(completed.baseline.outcome, "QUALIFIED_WITH_KNOWN_FAILURES");
+  assert.equal(completed.baseline.outcome, "QUALIFIED_WITH_GAPS");
   assert.equal(completed.liveExecution, undefined);
 });
 
