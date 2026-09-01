@@ -266,7 +266,7 @@ The dozens of backend nodes are grouped for human readability:
 4. Target Authority & Materialization
 5. Migration Owners & Transformation Review
 6. Clean Validation
-7. Promotion & Seal
+7. Post-validation Authority & Seal
 
 Repair becomes a contextual eighth group when needed.
 
@@ -792,7 +792,8 @@ Examples:
 - apply ledger
 - dependency closure
 - validation summary
-- promotion decision
+- policy-selected post-validation authority result
+- candidate-promotion evidence when required by G12
 - output manifest
 - seal.json
 
@@ -844,7 +845,9 @@ authoritative target generation
    ↓
 validation generation
    ↓
-promoted generation
+post-validation authority
+   ↓
+[optional G12 candidate promotion]
    ↓
 sealed output
 ```
@@ -1050,18 +1053,32 @@ Validation presents:
 
 Known G03 baseline conditions are not mislabeled as new migration regressions.
 
-## 23. Candidate promotion
+## 23. Post-validation authority
 
 A validated workspace does not become the next-stage source immediately.
 
-The UI shows:
+The exact authority path is selected by the active plan/gate policy.
 
-- candidate generation
-- validation-summary binding
-- promotion decision
-- blockers if rejected
-- promoted generation ID
-- promotion artifact
+### G11 direct-seal path
+
+For the persisted reference route, G11 approves the validated post-state and the stage proceeds to sealing once the sealing preconditions still match.
+
+No candidate-promotion record is invented for this path.
+
+### G12 candidate-promotion path
+
+When the active plan selects candidate promotion, the UI shows:
+
+- candidate generation;
+- validation-summary binding;
+- approved G12 package binding;
+- live fingerprint equality;
+- promotion decision;
+- blockers if rejected;
+- promoted generation ID;
+- promotion artifact.
+
+In both paths, the next stage remains blocked until the current stage has sealed.
 
 ## 24. Stage sealing
 
@@ -1315,7 +1332,7 @@ features/angular-transformer/
 ├── diagnostic-delta.tsx
 ├── repair-timeline.tsx
 ├── repair-operation.tsx
-├── promotion-panel.tsx
+├── post-validation-authority-panel.tsx
 └── seal-summary.tsx
 ```
 
@@ -1416,7 +1433,7 @@ Verify:
 - G10 starts deterministic apply;
 - dependency repair materializes before tests;
 - affected validation precedes full validation;
-- promotion precedes seal;
+- candidate promotion precedes seal when the selected G12 policy requires promotion;
 - seal precedes next-stage materialization;
 - later stage consumes previous seal;
 - final target does not rerun Analysis/Planning.
@@ -1530,7 +1547,7 @@ No UI replacement yet.
 - migration ledger
 - G08
 - validation
-- promotion/seal
+- policy-selected post-validation authority/seal
 
 Wire one clean 11→12 stage end-to-end.
 
@@ -1572,7 +1589,7 @@ Wire one clean 11→12 stage end-to-end.
 - 20→21 dependency-add/source-repair scenario
 - reference 18→21 proof scenario
 
-### Wave 7 — Promotion/sealing/completion hardening
+### Wave 7 — Post-validation authority/sealing/completion hardening
 
 - chain hashes
 - stage seal summaries
@@ -1613,7 +1630,7 @@ The work is complete only when all of the following are true:
 14. Repair begins only from frozen failure evidence.
 15. Dependency-transition, dependency-add, and source-patch repairs are distinct.
 16. Repair validation shows materialization, affected checks, and full replay.
-17. Candidate promotion happens before sealing.
+17. Candidate promotion happens before sealing only on plans that select the G12 promotion path; the reference G11 route seals without fabricating promotion.
 18. Seal lineage is visible and becomes the next stage input.
 19. Route progress and stage progress are separate.
 20. Active work dominates the page; completed work collapses.
@@ -1633,12 +1650,12 @@ These are non-negotiable:
 - backend/workflow semantics beat visual convenience;
 - no raw shell authority;
 - no direct source mutation;
-- no one-shot generic Angular update representation;
+- no one-shot generic Angular update representation as current stage authority; historical reference evidence may show the observed governed Angular-update command from the persisted proof;
 - no progress fabricated from unsupported command percentages;
 - no gate invented by frontend state;
 - no repair before real failure evidence;
 - proposer, reviewer, human, and deterministic apply remain separate authorities;
-- no stage considered reusable before promotion/sealing;
+- no stage considered reusable before sealing; when the plan selects G12 candidate promotion, that promotion must succeed before sealing/materialization;
 - no next stage sourced from an unsealed mutable workspace;
 - no delivery claim from Transformer completion alone;
 - historical evidence is append-only in the presentation;
