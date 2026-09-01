@@ -10,10 +10,10 @@ export interface RecentMigration {
 
 export const recentMigrations: RecentMigration[] = [
   {
-    id: "ang-customer-portal",
-    name: "Customer Portal",
+    id: "ang-crud-action",
+    name: "Angular 11 CRUD Example",
     stack: "Angular",
-    route: "Angular 11 → 15",
+    route: "Angular 11 → 21",
     status: "ACTION_REQUIRED",
     href: "/angular/migrations/run-angular-action",
     updated: "2 min ago",
@@ -46,10 +46,10 @@ export const recentMigrations: RecentMigration[] = [
     updated: "34 min ago",
   },
   {
-    id: "ang-legacy-admin",
-    name: "Legacy Admin",
+    id: "ang-crud-complete",
+    name: "Angular 11 CRUD Example",
     stack: "Angular",
-    route: "Angular 18 → 21",
+    route: "Angular 11 → 21",
     status: "COMPLETED",
     href: "/angular/migrations/run-angular-complete",
     updated: "Yesterday",

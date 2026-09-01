@@ -82,3 +82,17 @@ Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indi
 ## Maintenance rule
 
 Any future workflow change in this presentation app must update this matrix in the same commit and cite the original stack source that authorizes the change.
+
+
+## Angular presentation source application
+
+The primary Angular presentation scenario is grounded in the real demo application:
+
+- Repository: `cornflourblue/angular-11-crud-example`
+- Branch: `master`
+- Revision: `eda3cf6278c02e4fb65f91ec73a9281d4325514e`
+- Source: Angular 11.0.4 / Angular CLI 11.0.4 / build-angular 0.1100.4 / TypeScript 4.0.2 / RxJS 6.6.x
+- Workspace: one Angular CLI application (`angular-crud-example`) with one lazy `UsersModule`
+- Preserved behavior: Reactive Forms, five UserService CRUD HTTP operations, interceptor-based local development API, routing, production budgets, Karma/Jasmine configuration, TSLint/Codelyzer, and Protractor E2E intent
+
+This repository supplies presentation **application evidence only**. Angular workflow/governance authority remains `Ali-Hamdaoui/angular-migration:v2.3`.

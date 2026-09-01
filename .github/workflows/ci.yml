@@ -62,7 +62,7 @@ jobs:
           routes=(
             "/"
             "/angular/migrations/new"
-            "/angular/preflights/preflight-customer-portal-11-15"
+            "/angular/preflights/preflight-angular-11-crud-example-11-21"
             "/angular/migrations/run-angular-action"
             "/java/migrations/new"
             "/java/migrations/java-order-service"
