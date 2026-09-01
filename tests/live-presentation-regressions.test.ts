@@ -46,7 +46,7 @@ test("Angular current execution copy explicitly handles live execution before ta
   assert.match(source, /run\.liveExecution/);
   assert.match(
     source,
-    /Execution is active.*next governed review boundary/s,
+    /Execution is active[\s\S]*next governed review boundary/,
   );
 });
 
