@@ -17,18 +17,18 @@ import {
 
 export function seedAngularPreflight(id: string): AngularPreflight {
   const primary = prepareAngularPreflight({
-    runName: "Customer Portal",
-    sourcePath: "/workspace/customer-portal-angular11",
+    runName: "Angular 11 CRUD Example",
+    sourcePath: "/workspace/angular-11-crud-example",
     outputParent: "/workspace/migration-output",
     sourceMajor: 11,
-    targetMajor: 15,
+    targetMajor: 21,
   });
   return { ...primary, id };
 }
 
 function approvedRunSeed(): AngularRunSeed {
   const preflight = seedAngularPreflight(
-    "preflight-customer-portal-11-15",
+    "preflight-angular-11-crud-example-11-21",
   );
   const approved = applyG01Decision(preflight, "APPROVE");
   return createRunFromApprovedPreflight(approved);

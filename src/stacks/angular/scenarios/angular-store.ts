@@ -14,7 +14,7 @@ interface AngularPresentationState {
   runs: Record<string, AngularRunModel | AngularRunSeed>;
 }
 
-const STORAGE_KEY = "migration-factory:angular:v2";
+const STORAGE_KEY = "migration-factory:angular:v3";
 
 function emptyState(): AngularPresentationState {
   return { preflights: {}, runs: {} };

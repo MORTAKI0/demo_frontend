@@ -1,4 +1,5 @@
 import { stableDisplayChecksum } from "../../../scenarios/runtime/checksum.ts";
+import { ANGULAR11_CRUD_SOURCE } from "../domain/demo-source.ts";
 import type { AngularRunSeed } from "../domain/types.ts";
 import { prepareProvenStage } from "./proven.ts";
 import { createAngularLiveExecution } from "./live-definitions.ts";
@@ -105,13 +106,15 @@ const initialAnalysis: AngularAnalysisModel = {
   confidence: "WAITING",
   proposer: llmProvenance("phase_proposer", "WAITING"),
   reviewer: llmProvenance("phase_reviewer", "WAITING"),
+  findings: [],
 };
 
 const initialFeasibility: AngularFeasibilityModel = {
   status: "WAITING",
   coreCompatibility: "SUPPORTED",
   runtimeCompatibility: "SUPPORTED",
-  thirdPartySummary: "42 packages will be checked against each adjacent target.",
+  thirdPartySummary:
+    "17 non-Angular manifest entries will be tracked; TSLint/Codelyzer and Protractor require later tooling transitions.",
   lockfileAuthority: "package-lock.json",
   warnings: [],
 };
@@ -183,7 +186,10 @@ export function createAngularRunModel(seed: AngularRunSeed): AngularRunModel {
 export function completedBaseline(): AngularBaselineModel {
   return {
     outcome: "QUALIFIED_WITH_KNOWN_FAILURES",
-    knownFailures: ["1 legacy test warning accepted as source baseline evidence."],
+    knownFailures: [
+      "Karma/Jasmine/Chrome harness is configured, but no src/**/*.spec.ts unit specs exist in the source revision.",
+      "Protractor 7 E2E coverage exists and is recorded as legacy test authority for later migration.",
+    ],
     steps: initialBaseline().steps.map((step) => ({
       ...step,
       status: step.id === "tests" ? "KNOWN_FAILURES" as const : "PASS" as const,
@@ -197,15 +203,128 @@ export function completedAnalysis(
   return {
     revision: 1,
     status,
-    facts: ["3 Angular projects", "package-lock authority", "standard Angular CLI builder"],
-    risks: ["One third-party test package requires transition at a later stage."],
-    unknowns: [],
+    facts: [
+      "1 Angular CLI application: angular-crud-example",
+      "1 lazy-loaded feature module: UsersModule",
+      "Reactive Forms with cross-field MustMatch validation",
+      "HttpClient CRUD service with GET, GET by id, POST, PUT, and DELETE",
+      "package-lock.json is the package authority",
+      "strict TypeScript and strict Angular templates are enabled",
+    ],
+    risks: [
+      "TSLint 6.1 and Codelyzer 6 require a governed lint-tooling transition on later Angular majors.",
+      "Protractor 7 is legacy E2E authority and requires a governed replacement path.",
+      "RxJS 6.6 usage includes the legacy throwError(value) call shape that must be modernized later.",
+      "Lazy UsersModule routing and local development HTTP interceptor behavior must remain equivalent through every stage.",
+    ],
+    unknowns: [
+      "No source unit specs are present, so unit-level behavioral coverage cannot be used as migration evidence until tests are added.",
+    ],
     reviewerVerdict: "ACCEPT",
     summary:
-      "The application is a standard Angular CLI workspace with three projects, lockfile authority, and one bounded third-party migration risk.",
+      "The source is a single Angular 11.0.4 CLI application with a lazy UsersModule, Reactive Forms, an HttpClient CRUD service, an interceptor-based local development API, strict templates, and legacy TSLint/Protractor tooling that must be governed across later majors.",
     confidence: "HIGH",
-    proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 1842, 436),
-    reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1028, 214),
+    proposer: llmProvenance("phase_proposer", "SUCCEEDED", 3500, 2864, 748),
+    reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 3400, 1760, 392),
+    applicationProfile: {
+      repository: ANGULAR11_CRUD_SOURCE.repository,
+      revision: ANGULAR11_CRUD_SOURCE.revision,
+      applicationName: ANGULAR11_CRUD_SOURCE.applicationName,
+      angular: ANGULAR11_CRUD_SOURCE.angular,
+      angularCli: ANGULAR11_CRUD_SOURCE.angularCli,
+      buildAngular: ANGULAR11_CRUD_SOURCE.buildAngular,
+      typescript: ANGULAR11_CRUD_SOURCE.typescript,
+      rxjs: ANGULAR11_CRUD_SOURCE.rxjs,
+      zoneJs: ANGULAR11_CRUD_SOURCE.zoneJs,
+      projects: ANGULAR11_CRUD_SOURCE.projects,
+      lazyFeatureModules: ANGULAR11_CRUD_SOURCE.lazyFeatureModules,
+      crudOperations: ANGULAR11_CRUD_SOURCE.crudOperations,
+      routes: [...ANGULAR11_CRUD_SOURCE.routes],
+      architecture: [...ANGULAR11_CRUD_SOURCE.architecture],
+      tooling: { ...ANGULAR11_CRUD_SOURCE.tooling },
+    },
+    findings: [
+      {
+        id: "preserve-ngmodule",
+        category: "ARCHITECTURE",
+        severity: "INFO",
+        title: "Preserve NgModule architecture during major-by-major migration",
+        evidence:
+          "AppModule and lazy UsersModule are explicit source architecture; no standalone conversion is required for the migration goal.",
+        impact:
+          "Keep module boundaries stable unless an Angular-owned migration explicitly requires a change.",
+      },
+      {
+        id: "lazy-users-module",
+        category: "ROUTING",
+        severity: "WATCH",
+        title: "Keep the lazy UsersModule route behavior equivalent",
+        evidence:
+          "src/app/app-routing.module.ts lazy-loads src/app/users/users.module.ts for /users.",
+        impact:
+          "Verify /users, /users/add, and /users/edit/:id after each adjacent-major stage.",
+      },
+      {
+        id: "reactive-forms",
+        category: "FORMS",
+        severity: "WATCH",
+        title: "Preserve Reactive Forms validation semantics",
+        evidence:
+          "AddEditComponent uses required/email/minLength validators plus MustMatch(password, confirmPassword).",
+        impact:
+          "Form validity, add/edit password rules, and cross-field confirmation behavior require parity checks.",
+      },
+      {
+        id: "interceptor-localstorage",
+        category: "HTTP",
+        severity: "WATCH",
+        title: "Preserve interceptor-based local CRUD behavior",
+        evidence:
+          "The development HTTP interceptor handles five CRUD operations, persists users in localStorage, and delays responses by 500ms.",
+        impact:
+          "HttpClient/interceptor ordering and CRUD behavior must remain stable during framework transitions.",
+      },
+      {
+        id: "rxjs-throwerror",
+        category: "DEPENDENCY",
+        severity: "WATCH",
+        title: "Track legacy RxJS throwError call shape",
+        evidence:
+          "Error handling uses throwError(value) with RxJS 6.6 and rxjs/operators.",
+        impact:
+          "Later RxJS compatibility work should modernize the call shape without changing propagated error behavior.",
+      },
+      {
+        id: "tslint-codelyzer",
+        category: "TOOLING",
+        severity: "MIGRATION_REQUIRED",
+        title: "Replace TSLint/Codelyzer on a governed later stage",
+        evidence:
+          "angular.json uses @angular-devkit/build-angular:tslint with TSLint 6.1 and Codelyzer 6.",
+        impact:
+          "Lint authority must transition without silently dropping source quality checks.",
+      },
+      {
+        id: "protractor",
+        category: "TESTING",
+        severity: "MIGRATION_REQUIRED",
+        title: "Replace Protractor E2E authority",
+        evidence:
+          "e2e/protractor.conf.js and e2e/src/app.e2e-spec.ts define Protractor 7 + Jasmine E2E coverage.",
+        impact:
+          "Preserve the E2E intent while moving to supported browser-test tooling at the appropriate migration stage.",
+      },
+      {
+        id: "unit-test-gap",
+        category: "TESTING",
+        severity: "WATCH",
+        title: "Unit-test coverage is absent in the source revision",
+        evidence:
+          "src/test.ts discovers src/**/*.spec.ts, but the source tree contains no unit spec files.",
+        impact:
+          "Build, lint, E2E, route/service evidence, and manual parity carry more weight until unit coverage is introduced.",
+      },
+    ],
   };
 }
 
@@ -214,9 +333,12 @@ export function completedFeasibility(): AngularFeasibilityModel {
     status: "APPROVED",
     coreCompatibility: "SUPPORTED",
     runtimeCompatibility: "SUPPORTED",
-    thirdPartySummary: "39 compatible · 2 migration-required · 1 review-required",
+    thirdPartySummary:
+      "17 non-Angular manifest entries tracked · TSLint/Codelyzer and Protractor migration-required · RxJS 6.6 modernization watched",
     lockfileAuthority: "package-lock.json",
-    warnings: ["Third-party transition will be governed inside the affected stage."],
+    warnings: [
+      "Legacy lint and E2E tooling transitions will be governed inside the affected adjacent-major stages.",
+    ],
   };
 }
 
@@ -433,16 +555,16 @@ export function completeAngularBaselineExecution(
       ...run.operations,
       commands: [
         ...run.operations.commands,
-        baselineCommand(run.id, "BASELINE_INSTALL", "npm ci --include=optional", now, [
+        baselineCommand(run.id, "BASELINE_INSTALL", "npm ci", now, [
           "Lockfile authority accepted.",
           "Install completed.",
         ]),
-        baselineCommand(run.id, "BASELINE_BUILD", "npm run build", now, [
+        baselineCommand(run.id, "BASELINE_BUILD", "npm run build -- --prod", now, [
           "Baseline build completed with exit code 0.",
         ]),
-        baselineCommand(run.id, "BASELINE_TEST", "npm test -- --watch=false", now, [
-          "Known source warning classified.",
-          "Baseline tests completed.",
+        baselineCommand(run.id, "BASELINE_TEST", "npm test -- --watch=false --browsers=ChromeHeadless", now, [
+          "Karma/Jasmine/Chrome harness verified.",
+          "No source unit specs discovered; coverage gap classified as known baseline evidence.",
         ]),
       ],
     },
@@ -480,7 +602,7 @@ export function completeAngularAnalysisExecution(
         category: "ANALYSIS",
         title: "Analysis Proposer + independent Reviewer completed",
         summary:
-          "Azure OpenAI proposer and reviewer outputs were schema-validated and bound to the G04 evidence package.",
+          "Repository-grounded Angular 11 CRUD findings, Azure OpenAI proposer/reviewer provenance, and evidence references were bound to the G04 package.",
         timestamp: now,
         checksum: stableDisplayChecksum(`${run.id}:analysis:completed`),
       },

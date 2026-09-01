@@ -33,6 +33,14 @@ export interface AngularSourceAnalysis {
   dependencyCount: number;
   thirdPartyPackages: number;
   confidence: "HIGH" | "MEDIUM";
+  applicationName: string;
+  angularCliVersion: string;
+  buildAngularVersion: string;
+  typescriptVersion: string;
+  rxjsVersion: string;
+  zoneJsVersion: string;
+  lazyFeatureModules: number;
+  crudOperations: number;
 }
 
 export interface AngularEvidenceItem {

@@ -16,11 +16,11 @@ import { AngularRouteBoard } from "./angular-route-board";
 
 export function AngularSetupPage() {
   const router = useRouter();
-  const [runName, setRunName] = useState("Customer Portal");
-  const [sourcePath, setSourcePath] = useState("/workspace/customer-portal-angular11");
+  const [runName, setRunName] = useState("Angular 11 CRUD Example");
+  const [sourcePath, setSourcePath] = useState("/workspace/angular-11-crud-example");
   const [outputParent, setOutputParent] = useState("/workspace/migration-output");
   const [sourceMajor, setSourceMajor] = useState<AngularMajor>(11);
-  const [targetMajor, setTargetMajor] = useState<AngularMajor>(15);
+  const [targetMajor, setTargetMajor] = useState<AngularMajor>(21);
   const [error, setError] = useState<string | null>(null);
 
   const route = useMemo(
@@ -162,12 +162,17 @@ export function AngularSetupPage() {
                 description="Deterministic source analysis identifies the Angular family, workspace topology, builder, lockfile authority, and dependency footprint."
               />
               <dl className="mt-5">
+                <DetailRow label="Application" value={preview.sourceAnalysis.applicationName} mono />
                 <DetailRow label="Detected Angular" value={preview.sourceAnalysis.detectedVersion} />
+                <DetailRow label="Angular CLI" value={preview.sourceAnalysis.angularCliVersion} />
+                <DetailRow label="TypeScript / RxJS" value={`${preview.sourceAnalysis.typescriptVersion} / ${preview.sourceAnalysis.rxjsVersion}`} />
                 <DetailRow label="Workspace" value={preview.sourceAnalysis.workspace} />
                 <DetailRow label="Projects" value={preview.sourceAnalysis.projects} />
+                <DetailRow label="Lazy feature modules" value={preview.sourceAnalysis.lazyFeatureModules} />
+                <DetailRow label="CRUD HTTP operations" value={preview.sourceAnalysis.crudOperations} />
                 <DetailRow label="Builder" value={preview.sourceAnalysis.builder} mono />
                 <DetailRow label="Lockfile" value={preview.sourceAnalysis.lockfile} mono />
-                <DetailRow label="Dependencies" value={`${preview.sourceAnalysis.dependencyCount} total · ${preview.sourceAnalysis.thirdPartyPackages} third-party`} />
+                <DetailRow label="Manifest entries" value={`${preview.sourceAnalysis.dependencyCount} total · ${preview.sourceAnalysis.thirdPartyPackages} non-Angular`} />
                 <DetailRow label="Confidence" value={<StatusBadge label={preview.sourceAnalysis.confidence} tone="success" />} />
               </dl>
             </Panel>

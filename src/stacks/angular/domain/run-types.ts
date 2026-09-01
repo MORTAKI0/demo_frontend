@@ -67,6 +67,44 @@ export type AngularLiveExecutionKind =
 
 export type AngularLiveExecution = LiveExecution<AngularLiveExecutionKind>;
 
+export interface AngularApplicationProfile {
+  repository: string;
+  revision: string;
+  applicationName: string;
+  angular: string;
+  angularCli: string;
+  buildAngular: string;
+  typescript: string;
+  rxjs: string;
+  zoneJs: string;
+  projects: number;
+  lazyFeatureModules: number;
+  crudOperations: number;
+  routes: string[];
+  architecture: string[];
+  tooling: {
+    unit: string;
+    lint: string;
+    e2e: string;
+  };
+}
+
+export interface AngularAnalysisFinding {
+  id: string;
+  category:
+    | "ARCHITECTURE"
+    | "ROUTING"
+    | "FORMS"
+    | "HTTP"
+    | "DEPENDENCY"
+    | "TOOLING"
+    | "TESTING";
+  severity: "INFO" | "WATCH" | "MIGRATION_REQUIRED";
+  title: string;
+  evidence: string;
+  impact: string;
+}
+
 export interface AngularAnalysisModel {
   revision: number;
   status: "WAITING" | "READY_FOR_REVIEW" | "APPROVED";
@@ -78,6 +116,8 @@ export interface AngularAnalysisModel {
   confidence: "WAITING" | "HIGH";
   proposer: AngularLlmProvenance;
   reviewer: AngularLlmProvenance;
+  applicationProfile?: AngularApplicationProfile;
+  findings: AngularAnalysisFinding[];
 }
 
 export interface AngularFeasibilityModel {

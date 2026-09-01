@@ -30,15 +30,29 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                     <StatusBadge label={gate.status} />
                   </div>
                   {gateId === "G03" && run.baseline.outcome !== "PENDING" ? (
-                    <div className="mt-4 grid gap-2 md:grid-cols-3">
-                      {run.baseline.steps.map((step) => (
-                        <div key={step.id} className="rounded-md bg-[var(--mf-surface-subtle)] px-3 py-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-semibold">{step.label}</span>
-                            <StatusBadge label={step.status} />
+                    <div className="mt-4">
+                      <div className="grid gap-2 md:grid-cols-3">
+                        {run.baseline.steps.map((step) => (
+                          <div key={step.id} className="rounded-md bg-[var(--mf-surface-subtle)] px-3 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-semibold">{step.label}</span>
+                              <StatusBadge label={step.status} />
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                      {run.baseline.knownFailures.length > 0 ? (
+                        <div className="mt-3 rounded-lg border border-[#f1d69d] bg-[var(--mf-warning-soft)] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-warning)]">
+                            Baseline coverage facts
+                          </p>
+                          <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)]">
+                            {run.baseline.knownFailures.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
                         </div>
-                      ))}
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -80,6 +94,79 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                 outputTokens={run.analysis.reviewer.outputTokens}
               />
             </div>
+            {run.analysis.applicationProfile ? (
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+                  Application profile
+                </p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <Fact label="Application" value={run.analysis.applicationProfile.applicationName} />
+                  <Fact label="Angular / CLI" value={`${run.analysis.applicationProfile.angular} / ${run.analysis.applicationProfile.angularCli}`} />
+                  <Fact label="TypeScript / RxJS" value={`${run.analysis.applicationProfile.typescript} / ${run.analysis.applicationProfile.rxjs}`} />
+                  <Fact label="Topology" value={`${run.analysis.applicationProfile.projects} app · ${run.analysis.applicationProfile.lazyFeatureModules} lazy module`} />
+                  <Fact label="CRUD operations" value={String(run.analysis.applicationProfile.crudOperations)} />
+                  <Fact label="Unit test authority" value={run.analysis.applicationProfile.tooling.unit} />
+                  <Fact label="Lint authority" value={run.analysis.applicationProfile.tooling.lint} />
+                  <Fact label="E2E authority" value={run.analysis.applicationProfile.tooling.e2e} />
+                </div>
+                <div className="mt-3 rounded-lg border border-[var(--mf-border)] bg-white p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+                    Preserved routes
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {run.analysis.applicationProfile.routes.map((route) => (
+                      <span key={route} className="rounded-md bg-[var(--mf-surface-subtle)] px-2 py-1 font-mono text-[11px]">
+                        {route}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-3 break-all font-mono text-[10px] text-[var(--mf-text-soft)]">
+                    {run.analysis.applicationProfile.repository}@{run.analysis.applicationProfile.revision}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            {run.analysis.findings.length > 0 ? (
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+                  Migration findings
+                </p>
+                <div className="mt-3 space-y-2">
+                  {run.analysis.findings.map((finding) => (
+                    <div key={finding.id} className="rounded-lg border border-[var(--mf-border)] bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+                            {finding.category}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold">{finding.title}</p>
+                        </div>
+                        <StatusBadge
+                          label={finding.severity}
+                          tone={
+                            finding.severity === "MIGRATION_REQUIRED"
+                              ? "warning"
+                              : finding.severity === "WATCH"
+                                ? "info"
+                                : "neutral"
+                          }
+                        />
+                      </div>
+                      <p className="mt-3 text-xs leading-5 text-[var(--mf-text-muted)]">
+                        <span className="font-semibold text-[var(--mf-text)]">Evidence: </span>
+                        {finding.evidence}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--mf-text-muted)]">
+                        <span className="font-semibold text-[var(--mf-text)]">Migration impact: </span>
+                        {finding.impact}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">Facts</p>

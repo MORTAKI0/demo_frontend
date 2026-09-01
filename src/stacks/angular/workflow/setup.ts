@@ -1,4 +1,5 @@
 import { stableDisplayChecksum } from "../../../scenarios/runtime/checksum.ts";
+import { ANGULAR11_CRUD_SOURCE } from "../domain/demo-source.ts";
 import {
   ANGULAR_MAJORS,
   type AngularG01Decision,
@@ -59,9 +60,16 @@ export function prepareAngularPreflight(
 ): AngularPreflight {
   const route = computeAngularRoute(input.sourceMajor, input.targetMajor);
   const blocked = input.sourcePath.toLowerCase().includes("blocked");
+  const isCrudDemo =
+    input.sourceMajor === 11 &&
+    input.sourcePath.toLowerCase().includes("angular-11-crud-example");
   const warnings =
     input.targetMajor - input.sourceMajor >= 3
-      ? ["1 third-party package requires migration review before a later stage."]
+      ? [
+          isCrudDemo
+            ? "TSLint/Codelyzer and Protractor require governed tooling transitions on later Angular majors."
+            : "One or more source tooling dependencies require migration review before a later stage.",
+        ]
       : [];
   const blockers = blocked ? ["Source path failed production-readiness validation."] : [];
   const id = `preflight-${slugify(input.runName)}-${input.sourceMajor}-${input.targetMajor}`;
@@ -89,17 +97,45 @@ export function prepareAngularPreflight(
       { id: "catalogue", label: "Compatibility catalogue", value: "Certified", status: "READY" },
       { id: "llm", label: "LLM readiness", value: "Available", status: "READY" },
     ],
-    sourceAnalysis: {
-      detectedVersion: `${input.sourceMajor}.2.14`,
-      packageManager: "npm",
-      workspace: "Angular CLI workspace",
-      projects: 3,
-      builder: "@angular-devkit/build-angular",
-      lockfile: "package-lock.json",
-      dependencyCount: 71,
-      thirdPartyPackages: 42,
-      confidence: "HIGH",
-    },
+    sourceAnalysis: isCrudDemo
+      ? {
+          detectedVersion: ANGULAR11_CRUD_SOURCE.angular,
+          packageManager: "npm",
+          workspace: "Angular CLI application",
+          projects: ANGULAR11_CRUD_SOURCE.projects,
+          builder: ANGULAR11_CRUD_SOURCE.builder,
+          lockfile: ANGULAR11_CRUD_SOURCE.lockfile,
+          dependencyCount: ANGULAR11_CRUD_SOURCE.packageEntries,
+          thirdPartyPackages: ANGULAR11_CRUD_SOURCE.thirdPartyEntries,
+          confidence: "HIGH",
+          applicationName: ANGULAR11_CRUD_SOURCE.applicationName,
+          angularCliVersion: ANGULAR11_CRUD_SOURCE.angularCli,
+          buildAngularVersion: ANGULAR11_CRUD_SOURCE.buildAngular,
+          typescriptVersion: ANGULAR11_CRUD_SOURCE.typescript,
+          rxjsVersion: ANGULAR11_CRUD_SOURCE.rxjs,
+          zoneJsVersion: ANGULAR11_CRUD_SOURCE.zoneJs,
+          lazyFeatureModules: ANGULAR11_CRUD_SOURCE.lazyFeatureModules,
+          crudOperations: ANGULAR11_CRUD_SOURCE.crudOperations,
+        }
+      : {
+          detectedVersion: `${input.sourceMajor}.x`,
+          packageManager: "npm",
+          workspace: "Angular CLI application",
+          projects: 1,
+          builder: "@angular-devkit/build-angular",
+          lockfile: "package-lock.json",
+          dependencyCount: 0,
+          thirdPartyPackages: 0,
+          confidence: "MEDIUM",
+          applicationName: "angular-application",
+          angularCliVersion: `${input.sourceMajor}.x`,
+          buildAngularVersion: "resolved during baseline",
+          typescriptVersion: "resolved during baseline",
+          rxjsVersion: "resolved during baseline",
+          zoneJsVersion: "resolved during baseline",
+          lazyFeatureModules: 0,
+          crudOperations: 0,
+        },
     evidence: [
       {
         id: `${id}-paths`,
@@ -115,7 +151,9 @@ export function prepareAngularPreflight(
         id: `${id}-source`,
         category: "SOURCE",
         title: "Source analysis",
-        summary: `Angular ${input.sourceMajor} workspace detected with package-lock authority.`,
+        summary: isCrudDemo
+          ? `Angular ${ANGULAR11_CRUD_SOURCE.angular} application ${ANGULAR11_CRUD_SOURCE.applicationName} detected with package-lock authority.`
+          : `Angular ${input.sourceMajor} workspace detected with package-lock authority.`,
         checksum: stableDisplayChecksum(`${checksum}:source`),
         timestamp: now,
       },
