@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { ProductHeader } from "@/components/shared/product-header";
@@ -51,6 +51,8 @@ export function AngularControlTowerPage() {
   const [run, setRun] = useState<AngularRunModel>(() => getAngularRun(runId));
   const [active, setActive] = useState("overview");
   const [error, setError] = useState<string | null>(null);
+  const liveExecutionRef = useRef<HTMLDivElement>(null);
+  const latestUpdateRef = useRef<HTMLDivElement>(null);
 
   const liveExecution = run.liveExecution;
 
@@ -69,6 +71,31 @@ export function AngularControlTowerPage() {
 
     return () => window.clearInterval(timer);
   }, [liveExecution]);
+
+  useEffect(() => {
+    if (!liveExecution?.id) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      liveExecutionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [liveExecution?.id]);
+
+  useEffect(() => {
+    const currentGate = run.currentGate;
+    if (liveExecution || !currentGate) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      latestUpdateRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [liveExecution, run.currentGate]);
 
   function handleDecision(
     gate: AngularPreTransformGateId,
@@ -169,10 +196,12 @@ export function AngularControlTowerPage() {
           </p>
         </div>
 
-        <AngularCurrentAction run={run} />
+        <div ref={latestUpdateRef} className="scroll-mt-4">
+          <AngularCurrentAction run={run} />
+        </div>
 
         {run.liveExecution ? (
-          <div className="mt-6">
+          <div ref={liveExecutionRef} className="mt-6 scroll-mt-4">
             <LiveExecutionPanel
               execution={run.liveExecution}
               title={run.currentAction}
@@ -184,6 +213,13 @@ export function AngularControlTowerPage() {
         {error ? (
           <div role="alert" className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">
             {error}
+          </div>
+        ) : null}
+
+        {!run.liveExecution ? (
+          <div className="mt-6 space-y-6">
+            <AngularGateDecisionPanel run={run} onDecision={handleDecision} />
+            <AngularStageDecisionPanel run={run} onDecision={handleStageDecision} />
           </div>
         ) : null}
 
@@ -212,10 +248,6 @@ export function AngularControlTowerPage() {
           ) : null}
         </div>
 
-        <div className="mt-6">
-          <AngularGateDecisionPanel run={run} onDecision={handleDecision} />
-          <AngularStageDecisionPanel run={run} onDecision={handleStageDecision} />
-        </div>
       </main>
     </div>
   );

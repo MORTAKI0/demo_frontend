@@ -1,3 +1,4 @@
+import type React from "react";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Timeline } from "@/components/ui/timeline";
@@ -62,7 +63,13 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
         </Panel>
 
         {run.analysis.status !== "WAITING" ? (
-          <Panel>
+          <PhaseDisclosure
+            title="G04 · Analysis Proposer + Independent Reviewer"
+            status={run.analysis.status}
+            active={run.currentGate === "G04"}
+            summary={run.analysis.summary}
+          >
+            <Panel>
             <PanelHeader
               eyebrow="G04"
               title="Analysis Proposer + Independent Reviewer"
@@ -185,11 +192,18 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                 <p className="mt-2 text-sm text-[var(--mf-text-muted)]">{run.analysis.unknowns.length || "No blocking unknowns"}</p>
               </div>
             </div>
-          </Panel>
+            </Panel>
+          </PhaseDisclosure>
         ) : null}
 
         {run.feasibility.status !== "WAITING" ? (
-          <Panel>
+          <PhaseDisclosure
+            title="G05 · Migration readiness"
+            status={run.feasibility.status}
+            active={run.currentGate === "G05"}
+            summary={run.feasibility.thirdPartySummary}
+          >
+            <Panel>
             <PanelHeader eyebrow="G05" title="Migration readiness" action={<StatusBadge label={run.feasibility.status} />} />
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <Fact label="Core compatibility" value={run.feasibility.coreCompatibility} />
@@ -197,11 +211,18 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
               <Fact label="Third-party compatibility" value={run.feasibility.thirdPartySummary} />
               <Fact label="Lockfile authority" value={run.feasibility.lockfileAuthority} />
             </div>
-          </Panel>
+            </Panel>
+          </PhaseDisclosure>
         ) : null}
 
         {run.planning.length > 0 ? (
-          <Panel>
+          <PhaseDisclosure
+            title="G06 · Migration plan"
+            status={run.planning.at(-1)?.status ?? "READY_FOR_REVIEW"}
+            active={run.currentGate === "G06"}
+            summary={run.planning.at(-1)?.summary ?? "Reviewed migration plan"}
+          >
+            <Panel>
             <PanelHeader eyebrow="G06" title="Migration plan revisions" />
             <div className="mt-5 space-y-3">
               {run.planning.map((revision) => (
@@ -229,13 +250,77 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
                         outputTokens={revision.reviewer.outputTokens}
                       />
                     </div>
+                    <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                      <div className="rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">Deterministic MigrationPlan</p>
+                        <dl className="mt-3 space-y-2 text-xs">
+                          <PlanRow label="Mode" value={revision.deterministicPlan.mode} />
+                          <PlanRow label="Catalogue" value={revision.deterministicPlan.catalogueVersion} />
+                          <PlanRow label="Stage strategy" value={revision.deterministicPlan.stagePlanStrategy} mono />
+                          <PlanRow label="Semantic version" value={revision.deterministicPlan.transformerSemanticVersion} mono />
+                          <PlanRow label="Approval" value={revision.deterministicPlan.approvalPolicy} mono />
+                          <PlanRow label="Commands" value={revision.deterministicPlan.commandPolicy} mono />
+                          <PlanRow label="Artifacts" value={revision.deterministicPlan.artifactPolicy} mono />
+                        </dl>
+                      </div>
+                      <div className="rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">First exact StageExecutionPlan</p>
+                        <dl className="mt-3 space-y-2 text-xs">
+                          <PlanRow label="Stage" value={revision.firstStagePlan.stage} />
+                          <PlanRow label="Angular" value={revision.firstStagePlan.sourceExact + " → " + revision.firstStagePlan.targetExact} mono />
+                          <PlanRow label="CLI" value={revision.firstStagePlan.targetCliExact} mono />
+                          <PlanRow label="Runtime" value={revision.firstStagePlan.runtime + " · npm " + revision.firstStagePlan.npm} mono />
+                          <PlanRow label="Builder" value={revision.firstStagePlan.builder} mono />
+                          <PlanRow label="Execution profile" value={revision.firstStagePlan.executionProfileId} mono />
+                        </dl>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-[var(--mf-border)] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">Full adjacent-major route</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {revision.deterministicPlan.route.map((stage) => (
+                          <span key={stage} className="rounded-md bg-[var(--mf-surface-subtle)] px-2 py-1 font-mono text-[10px]">{stage}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                      <PlanList title="Structured command groups" items={revision.firstStagePlan.commandGroups} mono />
+                      <PlanList title="Policy bindings" items={[
+                        revision.policies.validation,
+                        revision.policies.recovery,
+                        revision.policies.repair,
+                      ]} mono />
+                      <PlanList title="Forbidden changes" items={revision.policies.forbiddenChanges} mono />
+                    </div>
+
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <PlanList title="Planner rationale" items={revision.narrative.rationale} />
+                      <PlanList title="Material risks" items={revision.narrative.risks} />
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">Independent Planning review</p>
+                          <p className="mt-1 text-sm font-semibold">{revision.review.decision} · confidence {revision.review.confidence}</p>
+                        </div>
+                        <StatusBadge label={revision.review.decision} />
+                      </div>
+                      <ul className="mt-3 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)]">
+                        {revision.review.notes.map((note) => <li key={note}>• {note}</li>)}
+                      </ul>
+                    </div>
+
                     <p className="mt-3 max-w-lg truncate font-mono text-[10px] text-[var(--mf-text-soft)]">{revision.checksum}</p>
                   </div>
                   <StatusBadge label={revision.status} />
                 </div>
               ))}
             </div>
-          </Panel>
+            </Panel>
+          </PhaseDisclosure>
         ) : null}
       </div>
 
@@ -261,6 +346,63 @@ function Fact({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">{label}</p>
       <p className="mt-2 text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+
+function PhaseDisclosure({
+  title,
+  status,
+  active,
+  summary,
+  children,
+}: {
+  title: string;
+  status: string;
+  active: boolean;
+  summary: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      key={title + ":" + String(active)}
+      open={active}
+      className="rounded-xl border border-[var(--mf-border)] bg-white shadow-sm"
+    >
+      <summary className="cursor-pointer list-none px-5 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--mf-text-muted)]">{summary}</p>
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+              {active ? "Current phase detail" : "Completed phase detail · click to reopen"}
+            </p>
+          </div>
+          <StatusBadge label={status} />
+        </div>
+      </summary>
+      <div className="border-t border-[var(--mf-border)] p-4">{children}</div>
+    </details>
+  );
+}
+
+function PlanRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <dt className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">{label}</dt>
+      <dd className={"text-right text-[11px] " + (mono ? "font-mono" : "font-medium")}>{value}</dd>
+    </div>
+  );
+}
+
+function PlanList({ title, items, mono = false }: { title: string; items: string[]; mono?: boolean }) {
+  return (
+    <div className="rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">{title}</p>
+      <ul className={"mt-2 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)] " + (mono ? "font-mono text-[10px]" : "")}>
+        {items.map((item) => <li key={item}>• {item}</li>)}
+      </ul>
     </div>
   );
 }

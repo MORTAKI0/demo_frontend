@@ -151,14 +151,55 @@ function initialAnalysis(job: JavaJobSeed): JavaAnalysisRevision {
 
 function initialPlan(job: JavaJobModel): JavaPlanningRevision {
   const revision = job.planning.length + 1;
+  const includedRoute = job.route
+    .filter((stage) => stage.disposition === "INCLUDED")
+    .map((stage) => stage.label);
+
   return {
     revision,
     status: "READY_FOR_REVIEW",
     summary:
-      "Execute the selected Spring Boot route with reviewed analysis, assessment, pre-transform approval, Maven validation, and governed repair when required.",
+      "Reviewed Spring Boot route plan with explicit Java/Maven toolchains, agent responsibilities, human approval boundaries, build/test proof, bounded repair, stage result contracts, and terminal Stage 4 dependency/report handling.",
     checksum: stableDisplayChecksum(job.id + ":plan:" + revision),
     proposer: javaLlmProvenance("phase_proposer"),
     reviewer: javaLlmProvenance("phase_reviewer"),
+    routePlan: includedRoute,
+    executionUnits: [
+      "Analysis Agent + independent analysis_review",
+      "Planning Agent + independent planning_review",
+      "Assessment Agent execution-readiness proof",
+      "Human approval_review before transformation",
+      "Transform Agent in isolated migration workspace",
+      "Maven Build Agent with governed package proof",
+      "Test Validation with frozen failure evidence",
+      "Repair Proposer → independent Reviewer → human repair_review when validation fails",
+      "stage_completion_review and stage result contract",
+      "Terminal Stage 4 target-version review, validation, accepted output revision, and final report",
+    ],
+    validationTargets: [
+      "mvn clean package -DskipTests",
+      "mvn test",
+      "stage result contract",
+      "final report eligibility",
+    ],
+    constraints: [
+      "Backend owns Java 11/17/21 toolchain selection and Maven execution authority.",
+      "LLMs explain or propose bounded changes but never authorize commands, source paths, route scope, or human decisions.",
+      "Every normal repair attempt is scoped to its route stage and capped at three attempts.",
+      "No transformation proceeds before the explicit approval_review PhaseGate.",
+      "Stage 4 remains terminal-special and does not fabricate a normal PhaseGate.",
+    ],
+    rationale: [
+      "Keep Spring Boot framework transitions separate from the Java 17→21 runtime transition so each stage has a clear compatibility boundary.",
+      "Require independent proposer/reviewer roles before human decisions to prevent one model from becoming execution authority.",
+      "Treat Maven build and test results as proof-producing phases rather than optimistic success signals.",
+      "Use governed repair only after real build/test failure evidence exists and rerun validation after every applied repair.",
+    ],
+    reviewerNotes: [
+      "Route order, Java baselines, Maven validation, human approval boundaries, and terminal Stage 4 handling are internally consistent.",
+      "Planning does not introduce raw shell authority or let the reviewer replace the proposer-owned candidate.",
+      "Repair and stage-completion semantics remain independent from route discovery and planning scope.",
+    ],
   };
 }
 

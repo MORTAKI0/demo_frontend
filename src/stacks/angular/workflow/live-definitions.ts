@@ -1,3 +1,4 @@
+import { paceLiveExecution } from "../../../domain/live-execution.ts";
 import type {
   AngularLiveExecution,
   AngularLiveExecutionKind,
@@ -10,6 +11,18 @@ function id(kind: AngularLiveExecutionKind, startedAtMs: number) {
 }
 
 export function createAngularLiveExecution(
+  kind: AngularLiveExecutionKind,
+  startedAtMs: number,
+  context: {
+    source?: AngularMajor;
+    target?: AngularMajor;
+  } = {},
+): AngularLiveExecution {
+  const raw = createAngularLiveExecutionRaw(kind, startedAtMs, context);
+  return paceLiveExecution(raw, kind === "PLANNING" ? 45_000 : 30_000);
+}
+
+function createAngularLiveExecutionRaw(
   kind: AngularLiveExecutionKind,
   startedAtMs: number,
   context: {
@@ -396,65 +409,181 @@ export function createAngularLiveExecution(
       startedAtMs,
       steps: [
         {
-          id: "plan-context",
-          label: "Build planning context",
-          node: "planning.context",
-          detail: "Bind route, compatibility, runtime, and stage-knowledge evidence.",
-          durationMs: 700,
+          id: "planning-inputs",
+          label: "Resolve deterministic Planning inputs",
+          node: "planning.inputs.resolve",
+          detail:
+            "Bind the accepted G05 package, source exact version, route, catalogue, runtime facts, builder, scripts, baseline results, and physical workspace fingerprint.",
+          durationMs: 3200,
           kind: "SYSTEM",
-          logs: ["Adjacent-major route bound.", "Stage knowledge and runtime catalogue attached."],
+          logs: [
+            "G05 accepted compatibility evidence bound.",
+            "Source exact: Angular 11.0.4.",
+            "Workspace: angular-crud-example · builder=@angular-devkit/build-angular:browser.",
+            "Package manager: npm · lockfile authority: package-lock.json.",
+            "Catalogue authority: catalog-v4.",
+            "Physical workspace fingerprint attached.",
+          ],
         },
         {
-          id: "plan-proposer",
+          id: "planning-route",
+          label: "Build deterministic MigrationPlan",
+          node: "planning.route.build",
+          detail:
+            "Generate the full adjacent-major route and immutable migration-level policies without authorizing execution.",
+          durationMs: 3600,
+          kind: "SYSTEM",
+          logs: [
+            "Mode: strict_compatibility.",
+            "Route: angular-11.x → 12.x → 13.x → 14.x → 15.x → 16.x → 17.x → 18.x → 19.x → 20.x → 21.x.",
+            "stage_plan_strategy=resolve_exact_before_each_stage",
+            "approval_policy=mandatory-human-v1",
+            "command_policy=structured-registry-v1",
+            "artifact_policy=immutable-stage-scoped-v1",
+            "transformer_semantic_version=transformer-plan-v2.2-proven-1",
+            "run_mode=PRODUCTION",
+          ],
+        },
+        {
+          id: "planning-first-stage",
+          label: "Resolve exact first StageExecutionPlan",
+          node: "planning.first_stage.resolve",
+          detail:
+            "Materialize only the first exact adjacent-major stage from catalog-v4; later stages resolve from each sealed predecessor.",
+          durationMs: 4200,
+          kind: "SYSTEM",
+          logs: [
+            "Stage: angular-11.x → angular-12.x.",
+            "Exact cohort: 11.0.4 → 12.2.17 · CLI 12.2.18.",
+            "Runtime proof: Node 12.22.12 · npm 8.19.4.",
+            "Target cohort: TypeScript 4.3.5 · RxJS 6.6.7 · zone.js 0.11.8.",
+            "Observed proof source: dev-runtimes-real-e2e.",
+            "execution_profile_id bound to exact runtime authority.",
+          ],
+        },
+        {
+          id: "planning-command-contract",
+          label: "Build structured command contract",
+          node: "planning.command_contract",
+          detail:
+            "Bind registry-backed command groups, working-directory aliases, timeouts, network profiles, cancellation policy, and parameter bindings; never raw shell authority.",
+          durationMs: 4500,
+          kind: "SYSTEM",
+          logs: [
+            "Structured command references use shell=false.",
+            "Working directory alias bound to governed stage workspace.",
+            "Cancellation policy: terminate_process_tree.",
+            "Bootstrap/final-install/build/test/lint authorities resolved from registered scripts and builder targets.",
+            "PROVEN semantics forbid prebinding legacy combined angular_update and migrate_packages groups.",
+            "Command contract checksum finalized.",
+          ],
+        },
+        {
+          id: "planning-policy-contract",
+          label: "Bind validation, recovery, repair, and forbidden-change policies",
+          node: "planning.policy_contract",
+          detail:
+            "Bind the policy set that limits what Transformer and governed repair may execute after G06.",
+          durationMs: 3600,
+          kind: "SYSTEM",
+          logs: [
+            "validation_policy=angular-stage-standard-v2",
+            "recovery_policy=safe-boundary-v1",
+            "repair_policy=proposer-reviewer-human-v1",
+            "Repair requires proposer + reviewer + human apply approval.",
+            "Forbidden: force dependency resolution.",
+            "Forbidden optional migrations: standalone · signals · control-flow · zoneless.",
+            "Build system decision: preserve @angular-devkit/build-angular:browser.",
+          ],
+        },
+        {
+          id: "planning-checksums",
+          label: "Freeze deterministic plan bindings",
+          node: "planning.checksum_binding",
+          detail:
+            "Checksum MigrationPlan, first StageExecutionPlan, prerequisite artifact set, and workspace binding before LLM explanation.",
+          durationMs: 2800,
+          kind: "SYSTEM",
+          logs: [
+            "MigrationPlan checksum finalized.",
+            "StageExecutionPlan checksum finalized.",
+            "Artifact-set checksum finalized.",
+            "Workspace fingerprint preserved.",
+            "Deterministic plan binding ready for Planning Proposer.",
+          ],
+        },
+        {
+          id: "planning-proposer",
           label: "Planning Proposer",
           node: "planning.phase_proposer",
-          detail: "Generate the structured migration and stage execution plan.",
-          durationMs: 1800,
+          detail:
+            "Explain only the deterministic migration and stage plans, including rationale, risks, and unresolved questions; the LLM cannot change commands, versions, checksums, or approvals.",
+          durationMs: 7200,
           kind: "LLM",
           provider: "azure_openai",
           deployment: "gpt-5-mini",
           role: "phase_proposer",
           logs: [
-            "Azure OpenAI invocation started",
-            "role=phase_proposer deployment=gpt-5-mini",
-            "migration route plan generated",
-            "stage execution contract generated",
+            "Azure OpenAI invocation started.",
+            "role=phase_proposer task=plan_rationale prompt=planning_agent_v1",
+            "Trusted context: MigrationPlan + StageExecutionPlan + deterministic checksum binding.",
+            "Generated rationale for adjacent-major execution and exact-first-stage strategy.",
+            "Material risks documented: legacy lint/E2E transition, sparse unit coverage, runtime drift, third-party compatibility.",
+            "Unresolved questions bounded to later governed validation.",
+            "Structured PlanningNarrative schema validation PASS.",
           ],
         },
         {
-          id: "plan-validate",
-          label: "Validate structured plan",
-          node: "planning.contract_validation",
-          detail: "Validate route, commands, runtime bindings, and artifact references.",
-          durationMs: 700,
+          id: "planning-reviewer-input",
+          label: "Bind proposer output for independent review",
+          node: "planning.reviewer_input",
+          detail:
+            "Persist the proposer checksum and expose the narrative as untrusted reviewer context while preserving trusted deterministic bindings.",
+          durationMs: 2200,
           kind: "SYSTEM",
-          logs: ["Plan schema valid.", "Structured command references accepted."],
+          logs: [
+            "Planning proposer output checksum recorded.",
+            "Deterministic plan checksum copied into reviewer package.",
+            "Proposer output marked untrusted reviewer context.",
+            "Reviewer binding package finalized.",
+          ],
         },
         {
-          id: "plan-reviewer",
+          id: "planning-reviewer",
           label: "Independent Planning Reviewer",
           node: "planning.phase_reviewer",
-          detail: "Review the plan and execution contract before G06.",
-          durationMs: 1600,
+          detail:
+            "Review explanation accuracy, evidence coverage, material risks, policy consistency, and checksum bindings without authoring or replacing the deterministic plan.",
+          durationMs: 6800,
           kind: "REVIEWER",
           provider: "azure_openai",
           deployment: "gpt-5-mini",
           role: "phase_reviewer",
           logs: [
-            "Azure OpenAI reviewer invocation started",
-            "role=phase_reviewer deployment=gpt-5-mini",
-            "review verdict=accept",
-            "reviewer evidence finalized",
+            "Azure OpenAI reviewer invocation started.",
+            "role=phase_reviewer task=planning_review prompt=planning_reviewer_v1",
+            "Verified full route and resolve_exact_before_each_stage strategy.",
+            "Verified first-stage exact cohort and runtime evidence.",
+            "Verified validation/recovery/repair/forbidden-change policies.",
+            "No unsupported execution claim detected.",
+            "review decision=accept · confidence=HIGH",
           ],
         },
         {
-          id: "plan-finalize",
-          label: "Finalize G06 package",
-          node: "planning.g06.finalize",
-          detail: "Persist plan revision, reviewer evidence, usage, and checksums.",
-          durationMs: 700,
+          id: "planning-package",
+          label: "Finalize immutable G06 Planning package",
+          node: "planning.package.finalize",
+          detail:
+            "Persist plan version, stage-plan binding, proposer/reviewer outputs and checksums, usage, revision count, and workspace fingerprint before opening G06.",
+          durationMs: 3900,
           kind: "SYSTEM",
-          logs: ["Plan revision #1 persisted.", "G06 review boundary opened."],
+          logs: [
+            "PlanningPackage review_status=accepted.",
+            "Plan version=1 · revision_count=0.",
+            "Proposer/reviewer usage ledger recorded.",
+            "Package checksum bound to plan + stage plan + artifact set + workspace fingerprint.",
+            "G06 Migration Plan review boundary opened.",
+          ],
         },
       ],
     };

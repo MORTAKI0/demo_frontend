@@ -38,6 +38,120 @@ function llmProvenance(
   };
 }
 
+const ANGULAR_STAGE_EXACT = {
+  11: { sourceExact: "11.0.4", targetExact: "12.2.17", targetCliExact: "12.2.18", node: "12.22.12", npm: "8.19.4", cohort: ["TypeScript 4.3.5", "RxJS 6.6.7", "zone.js 0.11.8"] },
+  12: { sourceExact: "12.2.17", targetExact: "13.3.12", targetCliExact: "13.3.11", node: "16.20.2", npm: "8.19.4", cohort: ["TypeScript 4.6.4", "RxJS 6.6.7", "zone.js 0.11.8"] },
+  13: { sourceExact: "13.3.12", targetExact: "14.3.0", targetCliExact: "14.2.13", node: "16.20.2", npm: "8.19.4", cohort: ["TypeScript 4.6.4", "RxJS 6.6.7", "zone.js 0.11.8"] },
+  14: { sourceExact: "14.3.0", targetExact: "15.2.10", targetCliExact: "15.2.11", node: "16.20.2", npm: "8.19.4", cohort: ["TypeScript 4.9.5", "RxJS 7.8.0", "zone.js 0.12.0"] },
+  15: { sourceExact: "15.2.10", targetExact: "16.2.12", targetCliExact: "16.2.16", node: "16.20.2", npm: "8.19.4", cohort: ["TypeScript 5.1.6", "RxJS 6.6.7", "zone.js 0.13.3"] },
+  16: { sourceExact: "16.2.12", targetExact: "17.3.12", targetCliExact: "17.3.17", node: "20.11.1", npm: "10.2.4", cohort: ["TypeScript 5.4.5", "RxJS 7.8.1", "zone.js 0.14.4"] },
+  17: { sourceExact: "17.3.12", targetExact: "18.2.14", targetCliExact: "18.2.21", node: "22.23.1", npm: "8.19.4", cohort: ["TypeScript 5.5.4", "RxJS 6.6.7", "zone.js 0.14.10"] },
+  18: { sourceExact: "18.2.14", targetExact: "19.2.25", targetCliExact: "19.2.27", node: "22.23.1", npm: "8.19.4", cohort: ["TypeScript 5.8.3", "RxJS 6.6.7", "zone.js 0.15.1"] },
+  19: { sourceExact: "19.2.25", targetExact: "20.3.27", targetCliExact: "20.3.34", node: "22.23.1", npm: "8.19.4", cohort: ["TypeScript 5.9.3", "RxJS 6.6.7", "zone.js 0.15.1"] },
+  20: { sourceExact: "20.3.27", targetExact: "21.2.19", targetCliExact: "21.2.20", node: "22.23.1", npm: "8.19.4", cohort: ["TypeScript 5.9.3", "RxJS 6.6.7", "zone.js 0.15.1"] },
+} as const;
+
+function buildAngularPlanningRevision(
+  run: Pick<AngularRunModel, "id" | "sourceMajor" | "targetMajor" | "route">,
+  revision: number,
+  status: AngularPlanningRevision["status"],
+  summary: string,
+): AngularPlanningRevision {
+  const first = run.route[0];
+  if (!first) {
+    throw new Error("Angular Planning requires at least one adjacent-major stage.");
+  }
+  const exact = ANGULAR_STAGE_EXACT[first.source as keyof typeof ANGULAR_STAGE_EXACT];
+  if (!exact) {
+    throw new Error("No exact Planning cohort is registered for Angular " + first.source + ".");
+  }
+
+  return {
+    revision,
+    status,
+    summary,
+    checksum: stableDisplayChecksum(`${run.id}:plan:${revision}`),
+    proposer: llmProvenance("phase_proposer", "SUCCEEDED", 7200, 3486, 934),
+    reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 6800, 2194, 476),
+    deterministicPlan: {
+      planVersion: revision,
+      mode: "strict_compatibility",
+      source: `angular-${run.sourceMajor}.x@${exact.sourceExact}`,
+      target: `angular-${run.targetMajor}.x`,
+      route: run.route.map((stage) => `angular-${stage.source}.x → angular-${stage.target}.x`),
+      catalogueVersion: "catalog-v4",
+      stagePlanStrategy: "resolve_exact_before_each_stage",
+      approvalPolicy: "mandatory-human-v1",
+      commandPolicy: "structured-registry-v1",
+      artifactPolicy: "immutable-stage-scoped-v1",
+      transformerSemanticVersion: "transformer-plan-v2.2-proven-1",
+      runMode: "PRODUCTION",
+    },
+    firstStagePlan: {
+      stage: `Angular ${first.source} → ${first.target}`,
+      sourceExact: exact.sourceExact,
+      targetExact: exact.targetExact,
+      targetCliExact: exact.targetCliExact,
+      targetCohort: [...exact.cohort],
+      runtime: `Node ${exact.node}`,
+      npm: exact.npm,
+      executionProfileId: `runtime-angular-${first.source}-${first.target}-observed`,
+      commandGroups: [
+        "bootstrap_install",
+        "target_version_check",
+        "lockfile_generation",
+        "final_install",
+        "builds",
+        "tests",
+        "lint",
+      ],
+      builder: "@angular-devkit/build-angular:browser",
+    },
+    policies: {
+      validation: "angular-stage-standard-v2",
+      recovery: "safe-boundary-v1",
+      repair: "proposer-reviewer-human-v1",
+      forbiddenChanges: [
+        "force_dependency_resolution",
+        "optional_standalone_migration",
+        "optional_signals_migration",
+        "optional_control_flow_migration",
+        "optional_zoneless_migration",
+      ],
+    },
+    narrative: {
+      rationale: [
+        "Execute every Angular major as an adjacent stage and resolve each later exact cohort only from the previous sealed output.",
+        "Preserve the existing @angular-devkit/build-angular:browser build system instead of introducing an unrelated builder migration.",
+        "Keep package-lock.json and structured command-registry references authoritative; Planning never emits raw shell authority.",
+        "Require build/test validation, independent review, human gates, repair validation, candidate promotion, and stage sealing before advancing.",
+        "Carry the Angular 11 CRUD application invariants—lazy UsersModule, Reactive Forms, HttpClient/interceptor behavior, and CRUD routes—through stage validation.",
+      ],
+      risks: [
+        "TSLint/Codelyzer and Protractor require governed tooling transitions at later majors.",
+        "The source has no unit specs, so route/service/E2E/build evidence has greater importance until coverage improves.",
+        "Runtime/catalogue drift must be revalidated immediately before each stage starts.",
+        "Third-party and RxJS compatibility may require bounded dependency or source repair; force resolution remains forbidden.",
+      ],
+      unresolvedQuestions: [
+        "The exact timing of legacy lint/E2E replacement remains stage-dependent and must follow the relevant Angular/tooling compatibility boundary.",
+        "Later-stage third-party compatibility outcomes remain governed runtime evidence, not assumptions encoded by Planning.",
+      ],
+    },
+    review: {
+      decision: "ACCEPT",
+      confidence: "HIGH",
+      notes: [
+        "Deterministic route, exact first-stage cohort, runtime proof, command groups, and policy bindings are internally consistent.",
+        "The narrative identifies material coverage/tooling/runtime risks without claiming they are already resolved.",
+        "Reviewer does not modify commands, versions, checksums, or approval authority.",
+      ],
+      policyConcerns: [],
+      revisionCount: 0,
+    },
+  };
+}
+
 function baselineCommand(
   runId: string,
   action: AngularCommandRecord["action"],
@@ -138,14 +252,19 @@ export function createAngularRunModel(seed: AngularRunSeed): AngularRunModel {
     analysis: seed.state === "COMPLETED" ? completedAnalysis() : initialAnalysis,
     feasibility: seed.state === "COMPLETED" ? { ...completedFeasibility() } : initialFeasibility,
     planning: seed.state === "COMPLETED"
-      ? [{
-          revision: 1,
-          status: "ACCEPTED",
-          summary: "Adjacent-major execution plan accepted.",
-          checksum: stableDisplayChecksum(`${seed.id}:plan:1`),
-          proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 2216, 512),
-          reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1260, 246),
-        }]
+      ? [
+          buildAngularPlanningRevision(
+            {
+              id: seed.id,
+              sourceMajor: seed.sourceMajor,
+              targetMajor: seed.targetMajor,
+              route: seed.route,
+            },
+            1,
+            "ACCEPTED",
+            "Reviewed deterministic adjacent-major plan accepted.",
+          ),
+        ]
       : [],
     evidence: [
       {
@@ -440,14 +559,12 @@ export function applyAngularGateDecision(
           ...withHistory.planning.map((revision) =>
             revision.status === "READY_FOR_REVIEW" ? { ...revision, status: "SUPERSEDED" as const } : revision,
           ),
-          {
-            revision: nextRevision,
-            status: "READY_FOR_REVIEW" as const,
-            summary: comment.trim() || "Migration plan revised against reviewer feedback.",
-            checksum: stableDisplayChecksum(`${run.id}:plan:${nextRevision}`),
-            proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 2140, 498),
-            reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1190, 238),
-          },
+          buildAngularPlanningRevision(
+            withHistory,
+            nextRevision,
+            "READY_FOR_REVIEW",
+            comment.trim() || "Migration plan revised against reviewer feedback.",
+          ),
         ]
       : withHistory.planning;
     return {
@@ -643,17 +760,12 @@ export function completeAngularPlanningExecution(
   run: AngularRunModel,
   now: string,
 ): AngularRunModel {
-  const revision: AngularPlanningRevision = {
-    revision: run.planning.length + 1,
-    status: "READY_FOR_REVIEW",
-    summary:
-      "Adjacent-major migration plan with bounded validation, runtime binding, independent review, and stage sealing.",
-    checksum: stableDisplayChecksum(
-      `${run.id}:plan:${run.planning.length + 1}`,
-    ),
-    proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 2216, 512),
-    reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1260, 246),
-  };
+  const revision = buildAngularPlanningRevision(
+    run,
+    run.planning.length + 1,
+    "READY_FOR_REVIEW",
+    "Deterministic Angular 11→21 plan: full adjacent-major route, exact first-stage contract, structured commands, governed policies, proposer explanation, and independent review.",
+  );
   return {
     ...run,
     phase: "PLANNING",

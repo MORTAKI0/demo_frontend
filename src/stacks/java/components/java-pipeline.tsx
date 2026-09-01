@@ -1,3 +1,4 @@
+import type React from "react";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { JavaJobModel } from "../domain/run-types";
@@ -30,7 +31,13 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
         </Panel>
 
         {job.analysis.length > 0 ? (
-          <Panel>
+          <PhaseDisclosure
+            title="Analysis Agent · reviewed revisions"
+            status={job.analysis.at(-1)?.status ?? "READY_FOR_REVIEW"}
+            active={job.currentGate === "analysis_review"}
+            summary={job.analysis.at(-1)?.summary ?? "Reviewed analysis"}
+          >
+            <Panel>
             <PanelHeader eyebrow="Analysis Agent" title="Analysis revisions" />
             <div className="mt-5 space-y-3">
               {job.analysis.map((revision) => (
@@ -84,11 +91,18 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
                 </div>
               ))}
             </div>
-          </Panel>
+            </Panel>
+          </PhaseDisclosure>
         ) : null}
 
         {job.planning.length > 0 ? (
-          <Panel>
+          <PhaseDisclosure
+            title="Planning Agent · reviewed route plan"
+            status={job.planning.at(-1)?.status ?? "READY_FOR_REVIEW"}
+            active={job.currentGate === "planning_review"}
+            summary={job.planning.at(-1)?.summary ?? "Reviewed planning revision"}
+          >
+            <Panel>
             <PanelHeader eyebrow="Planning Agent" title="Plan revisions" />
             <div className="mt-5 space-y-3">
               {job.planning.map((revision) => (
@@ -116,16 +130,31 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
                         outputTokens={revision.reviewer.outputTokens}
                       />
                     </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      <PlanList title="Route plan" items={revision.routePlan} />
+                      <PlanList title="Execution units" items={revision.executionUnits} />
+                      <PlanList title="Validation targets" items={revision.validationTargets} mono />
+                      <PlanList title="Governance constraints" items={revision.constraints} />
+                      <PlanList title="Planning rationale" items={revision.rationale} />
+                      <PlanList title="Reviewer conclusions" items={revision.reviewerNotes} />
+                    </div>
                   </div>
                   <StatusBadge label={revision.status} />
                 </div>
               ))}
             </div>
-          </Panel>
+            </Panel>
+          </PhaseDisclosure>
         ) : null}
 
         {job.assessment.status !== "WAITING" ? (
-          <Panel>
+          <PhaseDisclosure
+            title="Assessment Agent · execution readiness"
+            status={job.assessment.status}
+            active={job.currentPhase === "ASSESSMENT_AGENT"}
+            summary={job.assessment.summary}
+          >
+            <Panel>
             <PanelHeader
               eyebrow="Assessment Agent"
               title="Assessment"
@@ -135,7 +164,8 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
             <p className="mt-3 text-xs font-semibold text-[var(--mf-text-soft)]">
               Assessment is an execution phase. No assessment_review PhaseGate exists.
             </p>
-          </Panel>
+            </Panel>
+          </PhaseDisclosure>
         ) : null}
       </div>
 
@@ -174,6 +204,54 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
           </div>
         </Panel>
       </div>
+    </div>
+  );
+}
+
+
+function PhaseDisclosure({
+  title,
+  status,
+  active,
+  summary,
+  children,
+}: {
+  title: string;
+  status: string;
+  active: boolean;
+  summary: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      key={title + ":" + String(active)}
+      open={active}
+      className="rounded-xl border border-[var(--mf-border)] bg-white shadow-sm"
+    >
+      <summary className="cursor-pointer list-none px-5 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--mf-text-muted)]">{summary}</p>
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+              {active ? "Current phase detail" : "Completed phase detail · click to reopen"}
+            </p>
+          </div>
+          <StatusBadge label={status} />
+        </div>
+      </summary>
+      <div className="border-t border-[var(--mf-border)] p-4">{children}</div>
+    </details>
+  );
+}
+
+function PlanList({ title, items, mono = false }: { title: string; items: string[]; mono?: boolean }) {
+  return (
+    <div className="rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">{title}</p>
+      <ul className={"mt-2 space-y-1 text-xs leading-5 text-[var(--mf-text-muted)] " + (mono ? "font-mono text-[10px]" : "")}>
+        {items.map((item) => <li key={item}>• {item}</li>)}
+      </ul>
     </div>
   );
 }
