@@ -4,7 +4,10 @@ import test from "node:test";
 import { liveExecutionDuration } from "../src/domain/live-execution.ts";
 import { prepareAngularPreflight } from "../src/stacks/angular/workflow/setup.ts";
 import { createAngularLiveExecution } from "../src/stacks/angular/workflow/live-definitions.ts";
-import { completedAnalysis } from "../src/stacks/angular/workflow/run.ts";
+import {
+  completedAnalysis,
+  completedBaseline,
+} from "../src/stacks/angular/workflow/run.ts";
 
 test("Angular demo source review matches cornflourblue angular-11-crud-example", () => {
   const preflight = prepareAngularPreflight({
@@ -118,5 +121,20 @@ test("G04 completed analysis exposes repository-grounded application profile and
   assert.match(
     findings.get("lazy-users-module")?.evidence ?? "",
     /users\/users\.module\.ts/,
+  );
+});
+
+
+test("G03 classifies missing unit specs as a coverage gap rather than a test failure", () => {
+  const baseline = completedBaseline();
+  const tests = baseline.steps.find((step) => step.id === "tests");
+
+  assert.equal(baseline.outcome, "QUALIFIED_WITH_GAPS");
+  assert.equal(tests?.status, "COVERAGE_GAP");
+  assert.equal(baseline.knownFailures.length, 0);
+  assert.ok(
+    baseline.knownGaps.some((gap) =>
+      gap.includes("no src/**/*.spec.ts unit specs"),
+    ),
   );
 });
