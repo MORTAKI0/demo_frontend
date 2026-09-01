@@ -27,3 +27,11 @@ test("landing includes direct presenter links for Java analysis, repair, and ter
   assert.ok(hrefs.has("/angular/migrations/run-angular-action"));
   assert.ok(hrefs.has("/angular/migrations/run-angular-complete"));
 });
+
+
+test("Angular presenter cards match the Angular 11 CRUD source-grounded scenario", () => {
+  const angular = recentMigrations.filter((migration) => migration.stack === "Angular");
+  assert.equal(angular.length, 2);
+  assert.ok(angular.every((migration) => migration.name === "Angular 11 CRUD Example"));
+  assert.ok(angular.every((migration) => migration.route === "Angular 11 → 21"));
+});
