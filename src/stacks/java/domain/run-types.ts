@@ -107,6 +107,12 @@ export interface JavaPlanningRevision {
   checksum: string;
   proposer: JavaLlmProvenance;
   reviewer: JavaLlmProvenance;
+  routePlan: string[];
+  executionUnits: string[];
+  validationTargets: string[];
+  constraints: string[];
+  rationale: string[];
+  reviewerNotes: string[];
 }
 
 export interface JavaAssessmentProjection {
