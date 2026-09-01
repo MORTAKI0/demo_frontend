@@ -243,3 +243,15 @@ test("Control Towers auto-focus a new live execution and historical phase detail
     assert.match(source, /Completed phase detail/);
   }
 });
+
+
+test("Angular baseline detail collapses after G03 while remaining reopenable", () => {
+  const source = readFileSync(
+    "src/stacks/angular/components/angular-pipeline.tsx",
+    "utf8",
+  );
+
+  assert.match(source, /Baseline phase detail/);
+  assert.match(source, /open=\{run\.currentGate === "G03"\}/);
+  assert.match(source, /Completed baseline detail · click to reopen/);
+});
