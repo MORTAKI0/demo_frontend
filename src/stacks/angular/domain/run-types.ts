@@ -138,6 +138,50 @@ export interface AngularPlanningRevision {
   checksum: string;
   proposer: AngularLlmProvenance;
   reviewer: AngularLlmProvenance;
+  deterministicPlan: {
+    planVersion: number;
+    mode: "strict_compatibility";
+    source: string;
+    target: string;
+    route: string[];
+    catalogueVersion: string;
+    stagePlanStrategy: "resolve_exact_before_each_stage";
+    approvalPolicy: "mandatory-human-v1";
+    commandPolicy: "structured-registry-v1";
+    artifactPolicy: "immutable-stage-scoped-v1";
+    transformerSemanticVersion: "transformer-plan-v2.2-proven-1";
+    runMode: "PRODUCTION";
+  };
+  firstStagePlan: {
+    stage: string;
+    sourceExact: string;
+    targetExact: string;
+    targetCliExact: string;
+    targetCohort: string[];
+    runtime: string;
+    npm: string;
+    executionProfileId: string;
+    commandGroups: string[];
+    builder: string;
+  };
+  policies: {
+    validation: "angular-stage-standard-v2";
+    recovery: "safe-boundary-v1";
+    repair: "proposer-reviewer-human-v1";
+    forbiddenChanges: string[];
+  };
+  narrative: {
+    rationale: string[];
+    risks: string[];
+    unresolvedQuestions: string[];
+  };
+  review: {
+    decision: "ACCEPT";
+    confidence: "HIGH";
+    notes: string[];
+    policyConcerns: string[];
+    revisionCount: number;
+  };
 }
 
 export type AngularStageGateId = "G07" | "G09" | "G10" | "G11" | "G12";
