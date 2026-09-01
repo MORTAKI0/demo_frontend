@@ -389,12 +389,14 @@ Nodes:
 The UI contains a migration ledger:
 
 ```text
-@angular/core migration owner        PASSED
-@angular/cli migration owner         RUNNING
-third-party owner                    PENDING
+discovered package owner #1         PASSED
+discovered package owner #2         RUNNING
+remaining discovered owner          PENDING
 ```
 
-For each owner:
+For each owner, the package identity comes from the persisted/discovered migration metadata rather than a hardcoded frontend list.
+
+Display:
 
 - package
 - from version
