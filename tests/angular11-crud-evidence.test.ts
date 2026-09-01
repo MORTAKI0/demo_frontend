@@ -86,17 +86,20 @@ test("G04 analysis execution lasts 18-20 seconds and visibly scans the real CRUD
 test("G04 completed analysis exposes repository-grounded application profile and migration findings", () => {
   const analysis = completedAnalysis("READY_FOR_REVIEW");
 
-  assert.equal(analysis.applicationProfile.repository, "cornflourblue/angular-11-crud-example");
-  assert.equal(analysis.applicationProfile.revision, "eda3cf6278c02e4fb65f91ec73a9281d4325514e");
-  assert.equal(analysis.applicationProfile.applicationName, "angular-crud-example");
-  assert.equal(analysis.applicationProfile.angular, "11.0.4");
-  assert.equal(analysis.applicationProfile.angularCli, "11.0.4");
-  assert.equal(analysis.applicationProfile.typescript, "4.0.2");
-  assert.equal(analysis.applicationProfile.rxjs, "6.6.x");
-  assert.equal(analysis.applicationProfile.projects, 1);
-  assert.equal(analysis.applicationProfile.lazyFeatureModules, 1);
-  assert.equal(analysis.applicationProfile.crudOperations, 5);
-  assert.deepEqual(analysis.applicationProfile.routes, [
+  assert.ok(analysis.applicationProfile);
+  const profile = analysis.applicationProfile;
+
+  assert.equal(profile.repository, "cornflourblue/angular-11-crud-example");
+  assert.equal(profile.revision, "eda3cf6278c02e4fb65f91ec73a9281d4325514e");
+  assert.equal(profile.applicationName, "angular-crud-example");
+  assert.equal(profile.angular, "11.0.4");
+  assert.equal(profile.angularCli, "11.0.4");
+  assert.equal(profile.typescript, "4.0.2");
+  assert.equal(profile.rxjs, "6.6.x");
+  assert.equal(profile.projects, 1);
+  assert.equal(profile.lazyFeatureModules, 1);
+  assert.equal(profile.crudOperations, 5);
+  assert.deepEqual(profile.routes, [
     "/",
     "/users",
     "/users/add",
