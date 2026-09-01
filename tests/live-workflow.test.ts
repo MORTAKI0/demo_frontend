@@ -268,7 +268,11 @@ test("Java pipeline automatically executes phases with logs before analysis_revi
   assert.equal(job.liveExecution, undefined);
   assert.equal(job.analysis.length, 1);
   assert.equal(job.analysis[0]?.proposer.deployment, "gpt-5-mini");
-  assert.equal(job.analysis[0]?.reviewer.provider, "azure_openai");
+  assert.equal(job.analysis[0]?.reviewer.provider, "azure_foundry");
+  assert.equal(
+    job.analysis[0]?.reviewer.deployment,
+    "Llama-3.3-70B-Instruct",
+  );
 });
 
 test("Java planning executes automatically after analysis review and exposes reviewer provenance", () => {
@@ -282,5 +286,8 @@ test("Java planning executes automatically after analysis review and exposes rev
 
   job = runJavaUntilGate(job, "planning_review");
   assert.equal(job.planning[0]?.proposer.role, "phase_proposer");
-  assert.equal(job.planning[0]?.reviewer.deployment, "gpt-5-mini");
+  assert.equal(
+    job.planning[0]?.reviewer.deployment,
+    "Llama-3.3-70B-Instruct",
+  );
 });

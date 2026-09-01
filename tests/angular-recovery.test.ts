@@ -49,7 +49,9 @@ function repairRun() {
     run = finishLive(applyAngularStageGateDecision(run, "G07", "APPROVE"));
     run = finishLive(applyAngularStageGateDecision(run, "G12", "APPROVE"));
   }
-  return applyAngularStageGateDecision(run, "G07", "APPROVE");
+  return finishLive(
+    applyAngularStageGateDecision(run, "G07", "APPROVE"),
+  );
 }
 
 test("baseline command evidence preserves authorization, result, and logs", () => {
