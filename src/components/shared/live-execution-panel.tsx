@@ -118,7 +118,7 @@ export function LiveExecutionPanel({
                   <StatusBadge label={step.status} />
                 </div>
 
-                {step.status === "RUNNING" &&
+                {step.status !== "PENDING" &&
                 (step.provider || step.command) ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {step.provider ? (

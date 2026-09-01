@@ -16,6 +16,7 @@ export function cancelJavaMigration(
     currentGate: null,
     currentPhase: "CANCELLATION",
     currentAction: "Migration cancelled; active work has been stopped",
+    liveExecution: undefined,
     pipeline: job.pipeline.map((phase) =>
       phase.id === "CANCELLATION"
         ? { ...phase, status: "PASS" as const }

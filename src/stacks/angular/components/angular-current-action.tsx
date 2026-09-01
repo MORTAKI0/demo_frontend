@@ -27,9 +27,13 @@ export function AngularCurrentAction({ run }: { run: AngularRunModel }) {
           <p className="mt-2 text-sm leading-6 text-[#aeb8c8]">
             {currentGate
               ? `${currentGate.id} · ${currentGate.label} is the active governed review boundary.`
-              : run.phase === "STAGE_PREPARATION"
-                ? "Pre-transform governance is complete. Stage runtime resolution is the next authority boundary."
-                : "The requested Angular target has been achieved."}
+              : run.liveExecution
+                ? "Execution is active. The next governed review boundary remains unavailable until the running evidence package is finalized."
+                : run.phase === "STAGE_PREPARATION"
+                  ? "Pre-transform governance is complete. Stage runtime resolution is the next authority boundary."
+                  : run.state === "COMPLETED"
+                    ? "The requested Angular target has been achieved."
+                    : "The workflow is progressing between governed review boundaries."}
           </p>
         </div>
         <dl className="grid grid-cols-2 gap-x-5 gap-y-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
