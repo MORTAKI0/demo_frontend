@@ -51,9 +51,35 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
           <Panel>
             <PanelHeader
               eyebrow="G04"
-              title="Analysis Agent + Independent Reviewer"
+              title="Analysis Proposer + Independent Reviewer"
               action={<StatusBadge label={run.analysis.reviewerVerdict} />}
             />
+            <div className="mt-5 rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
+              <p className="text-sm font-semibold">{run.analysis.summary}</p>
+              <p className="mt-1 text-xs text-[var(--mf-text-muted)]">
+                Evidence confidence: {run.analysis.confidence}
+              </p>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <ModelCard
+                label="Analysis Proposer"
+                provider={run.analysis.proposer.provider}
+                deployment={run.analysis.proposer.deployment}
+                role={run.analysis.proposer.role}
+                durationMs={run.analysis.proposer.durationMs}
+                inputTokens={run.analysis.proposer.inputTokens}
+                outputTokens={run.analysis.proposer.outputTokens}
+              />
+              <ModelCard
+                label="Independent Reviewer"
+                provider={run.analysis.reviewer.provider}
+                deployment={run.analysis.reviewer.deployment}
+                role={run.analysis.reviewer.role}
+                durationMs={run.analysis.reviewer.durationMs}
+                inputTokens={run.analysis.reviewer.inputTokens}
+                outputTokens={run.analysis.reviewer.outputTokens}
+              />
+            </div>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">Facts</p>
@@ -93,10 +119,30 @@ export function AngularPipeline({ run }: { run: AngularRunModel }) {
             <div className="mt-5 space-y-3">
               {run.planning.map((revision) => (
                 <div key={revision.revision} className="flex items-start justify-between gap-4 rounded-lg border border-[var(--mf-border)] p-4">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">Plan revision #{revision.revision}</p>
                     <p className="mt-1 text-xs leading-5 text-[var(--mf-text-muted)]">{revision.summary}</p>
-                    <p className="mt-2 max-w-lg truncate font-mono text-[10px] text-[var(--mf-text-soft)]">{revision.checksum}</p>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <ModelCard
+                        label="Planning Proposer"
+                        provider={revision.proposer.provider}
+                        deployment={revision.proposer.deployment}
+                        role={revision.proposer.role}
+                        durationMs={revision.proposer.durationMs}
+                        inputTokens={revision.proposer.inputTokens}
+                        outputTokens={revision.proposer.outputTokens}
+                      />
+                      <ModelCard
+                        label="Planning Reviewer"
+                        provider={revision.reviewer.provider}
+                        deployment={revision.reviewer.deployment}
+                        role={revision.reviewer.role}
+                        durationMs={revision.reviewer.durationMs}
+                        inputTokens={revision.reviewer.inputTokens}
+                        outputTokens={revision.reviewer.outputTokens}
+                      />
+                    </div>
+                    <p className="mt-3 max-w-lg truncate font-mono text-[10px] text-[var(--mf-text-soft)]">{revision.checksum}</p>
                   </div>
                   <StatusBadge label={revision.status} />
                 </div>
@@ -128,6 +174,60 @@ function Fact({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">{label}</p>
       <p className="mt-2 text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+
+function ModelCard({
+  label,
+  provider,
+  deployment,
+  role,
+  durationMs,
+  inputTokens,
+  outputTokens,
+}: {
+  label: string;
+  provider: string;
+  deployment: string;
+  role: string;
+  durationMs: number;
+  inputTokens: number;
+  outputTokens: number;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--mf-border)] bg-white p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold">{label}</p>
+        <StatusBadge label="SUCCEEDED" />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Provider</dt>
+          <dd className="mt-0.5 font-medium">{provider.replaceAll("_", " ")}</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Model</dt>
+          <dd className="mt-0.5 font-mono">{deployment}</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Role</dt>
+          <dd className="mt-0.5">{role.replaceAll("_", " ")}</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Duration</dt>
+          <dd className="mt-0.5">{(durationMs / 1000).toFixed(1)}s</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Input</dt>
+          <dd className="mt-0.5">{inputTokens.toLocaleString()} tokens</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Output</dt>
+          <dd className="mt-0.5">{outputTokens.toLocaleString()} tokens</dd>
+        </div>
+      </dl>
     </div>
   );
 }

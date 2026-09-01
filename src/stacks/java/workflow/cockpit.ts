@@ -10,6 +10,7 @@ import type {
   JavaPipelinePhase,
   JavaPipelinePhaseId,
   JavaPlanningRevision,
+  JavaLlmProvenance,
 } from "../domain/run-types.ts";
 import { JAVA_PIPELINE_PHASES } from "../domain/run-types.ts";
 import type { JavaJobSeed } from "../domain/types.ts";
@@ -48,6 +49,32 @@ export function getJavaGateDecisions(type: JavaPhaseGateType): JavaGateDecision[
     return ["CONTINUE", "REANALYZE", "REVISE", "REJECT"];
   }
   return ["CONTINUE"];
+}
+
+function javaLlmProvenance(
+  role: JavaLlmProvenance["role"],
+): JavaLlmProvenance {
+  if (role === "phase_reviewer") {
+    return {
+      provider: "azure_foundry",
+      deployment: "Llama-3.3-70B-Instruct",
+      role,
+      status: "SUCCEEDED",
+      durationMs: 1700,
+      inputTokens: 1280,
+      outputTokens: 238,
+    };
+  }
+
+  return {
+    provider: "azure_openai",
+    deployment: "gpt-5-mini",
+    role,
+    status: "SUCCEEDED",
+    durationMs: 1800,
+    inputTokens: 2048,
+    outputTokens: 486,
+  };
 }
 
 function freshPipeline(active: JavaPipelinePhaseId = "PREFLIGHT"): JavaPipelinePhase[] {
@@ -115,6 +142,10 @@ function initialAnalysis(job: JavaJobSeed): JavaAnalysisRevision {
     ],
     risks: ["Third-party compatibility will be checked before transformation."],
     checksum: stableDisplayChecksum(job.id + ":analysis:1"),
+    summary:
+      "The source profile and Java/Maven baseline are consistent with the configured migration route; one third-party compatibility review remains bounded to transformation.",
+    proposer: javaLlmProvenance("phase_proposer"),
+    reviewer: javaLlmProvenance("phase_reviewer"),
   };
 }
 
@@ -126,6 +157,8 @@ function initialPlan(job: JavaJobModel): JavaPlanningRevision {
     summary:
       "Execute the selected Spring Boot route with reviewed analysis, assessment, pre-transform approval, Maven validation, and governed repair when required.",
     checksum: stableDisplayChecksum(job.id + ":plan:" + revision),
+    proposer: javaLlmProvenance("phase_proposer"),
+    reviewer: javaLlmProvenance("phase_reviewer"),
   };
 }
 
@@ -236,6 +269,8 @@ export function advanceJavaPipeline(
             revision: job.analysis.length + 1,
             status: "READY_FOR_REVIEW" as const,
             checksum: stableDisplayChecksum(job.id + ":analysis:" + (job.analysis.length + 1)),
+            proposer: javaLlmProvenance("phase_proposer"),
+            reviewer: javaLlmProvenance("phase_reviewer"),
           };
     const next = {
       ...job,

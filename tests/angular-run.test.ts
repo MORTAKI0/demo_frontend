@@ -12,6 +12,20 @@ import {
   getAllowedPreTransformDecisions,
   markG02Stale,
 } from "../src/stacks/angular/workflow/run.ts";
+import {
+  advanceAngularLiveExecution,
+  angularLiveExecutionDuration,
+} from "../src/stacks/angular/workflow/live.ts";
+
+function finishLive(run: ReturnType<typeof runModel>) {
+  assert.ok(run.liveExecution);
+  return advanceAngularLiveExecution(
+    run,
+    run.liveExecution.startedAtMs +
+      angularLiveExecutionDuration(run.liveExecution) +
+      1,
+  );
+}
 
 function runModel() {
   const preflight = prepareAngularPreflight({
@@ -33,10 +47,15 @@ test("authoritative run begins at G02 source snapshot", () => {
   assert.equal(run.gates.G03.status, "LOCKED");
 });
 
-test("G02 approval proves baseline and opens G03", () => {
-  const next = applyAngularGateDecision(runModel(), "G02", "APPROVE");
+test("G02 approval runs baseline before opening G03", () => {
+  const running = applyAngularGateDecision(runModel(), "G02", "APPROVE");
+  assert.equal(running.currentGate, null);
+  assert.equal(running.phase, "BASELINE");
+  assert.equal(running.baseline.outcome, "PENDING");
+  assert.equal(running.liveExecution?.kind, "BASELINE");
+
+  const next = finishLive(running);
   assert.equal(next.currentGate, "G03");
-  assert.equal(next.phase, "BASELINE");
   assert.equal(next.baseline.outcome, "QUALIFIED_WITH_KNOWN_FAILURES");
   assert.ok(next.baseline.steps.every((step) => ["PASS", "KNOWN_FAILURES"].includes(step.status)));
 });
@@ -58,7 +77,7 @@ test("G02 through G06 preserve the original governed order", () => {
   let run = runModel();
   for (const gate of ["G02", "G03", "G04", "G05", "G06"] as const) {
     assert.equal(run.currentGate, gate);
-    run = applyAngularGateDecision(run, gate, "APPROVE");
+    run = finishLive(applyAngularGateDecision(run, gate, "APPROVE"));
   }
   assert.equal(run.phase, "STAGE_PREPARATION");
   assert.equal(run.currentGate, "G07");
@@ -68,10 +87,10 @@ test("G02 through G06 preserve the original governed order", () => {
 
 test("planning revision supersedes the previous plan without deleting history", () => {
   let run = runModel();
-  run = applyAngularGateDecision(run, "G02", "APPROVE");
-  run = applyAngularGateDecision(run, "G03", "APPROVE");
-  run = applyAngularGateDecision(run, "G04", "APPROVE");
-  run = applyAngularGateDecision(run, "G05", "APPROVE");
+  run = finishLive(applyAngularGateDecision(run, "G02", "APPROVE"));
+  run = finishLive(applyAngularGateDecision(run, "G03", "APPROVE"));
+  run = finishLive(applyAngularGateDecision(run, "G04", "APPROVE"));
+  run = finishLive(applyAngularGateDecision(run, "G05", "APPROVE"));
   const revised = applyAngularGateDecision(run, "G06", "REQUEST_MODIFICATION", "Reduce stage risk.");
 
   assert.equal(revised.planning.length, 2);

@@ -14,7 +14,7 @@ interface AngularPresentationState {
   runs: Record<string, AngularRunModel | AngularRunSeed>;
 }
 
-const STORAGE_KEY = "migration-factory:angular:v1";
+const STORAGE_KEY = "migration-factory:angular:v2";
 
 function emptyState(): AngularPresentationState {
   return { preflights: {}, runs: {} };
@@ -77,7 +77,11 @@ export function getAngularRun(id: string): AngularRunModel {
   const existing = loadAngularState().runs[id];
   if (existing) {
     let model = asRunModel(existing);
-    if (model.phase === "STAGE_PREPARATION" && !model.stageExecution) {
+    if (
+      model.phase === "STAGE_PREPARATION" &&
+      !model.stageExecution &&
+      !model.liveExecution
+    ) {
       model = prepareProvenStage(model);
     }
     if (!("gates" in existing) || model !== existing) putAngularRun(model);

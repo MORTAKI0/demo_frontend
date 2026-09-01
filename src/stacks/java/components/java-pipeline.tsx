@@ -44,6 +44,29 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
                     </div>
                     <StatusBadge label={revision.status} />
                   </div>
+                  <p className="mt-3 text-xs leading-5 text-[var(--mf-text-muted)]">
+                    {revision.summary}
+                  </p>
+                  <div className="mt-4 grid gap-2 md:grid-cols-2">
+                    <ModelCard
+                      label="Analysis Proposer"
+                      provider={revision.proposer.provider}
+                      deployment={revision.proposer.deployment}
+                      role={revision.proposer.role}
+                      durationMs={revision.proposer.durationMs}
+                      inputTokens={revision.proposer.inputTokens}
+                      outputTokens={revision.proposer.outputTokens}
+                    />
+                    <ModelCard
+                      label="Independent Reviewer"
+                      provider={revision.reviewer.provider}
+                      deployment={revision.reviewer.deployment}
+                      role={revision.reviewer.role}
+                      durationMs={revision.reviewer.durationMs}
+                      inputTokens={revision.reviewer.inputTokens}
+                      outputTokens={revision.reviewer.outputTokens}
+                    />
+                  </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">Facts</p>
@@ -70,9 +93,29 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
             <div className="mt-5 space-y-3">
               {job.planning.map((revision) => (
                 <div key={revision.revision} className="flex items-start justify-between gap-4 rounded-lg border border-[var(--mf-border)] p-4">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">Plan revision #{revision.revision}</p>
                     <p className="mt-1 max-w-3xl text-xs leading-5 text-[var(--mf-text-muted)]">{revision.summary}</p>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <ModelCard
+                        label="Planning Proposer"
+                        provider={revision.proposer.provider}
+                        deployment={revision.proposer.deployment}
+                        role={revision.proposer.role}
+                        durationMs={revision.proposer.durationMs}
+                        inputTokens={revision.proposer.inputTokens}
+                        outputTokens={revision.proposer.outputTokens}
+                      />
+                      <ModelCard
+                        label="Planning Reviewer"
+                        provider={revision.reviewer.provider}
+                        deployment={revision.reviewer.deployment}
+                        role={revision.reviewer.role}
+                        durationMs={revision.reviewer.durationMs}
+                        inputTokens={revision.reviewer.inputTokens}
+                        outputTokens={revision.reviewer.outputTokens}
+                      />
+                    </div>
                   </div>
                   <StatusBadge label={revision.status} />
                 </div>
@@ -131,6 +174,60 @@ export function JavaPipeline({ job }: { job: JavaJobModel }) {
           </div>
         </Panel>
       </div>
+    </div>
+  );
+}
+
+
+function ModelCard({
+  label,
+  provider,
+  deployment,
+  role,
+  durationMs,
+  inputTokens,
+  outputTokens,
+}: {
+  label: string;
+  provider: string;
+  deployment: string;
+  role: string;
+  durationMs: number;
+  inputTokens: number;
+  outputTokens: number;
+}) {
+  return (
+    <div className="rounded-md border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold">{label}</p>
+        <StatusBadge label="SUCCEEDED" />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Provider</dt>
+          <dd className="mt-0.5 font-medium">{provider.replaceAll("_", " ")}</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Model</dt>
+          <dd className="mt-0.5 font-mono">{deployment}</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Role</dt>
+          <dd className="mt-0.5">{role.replaceAll("_", " ")}</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Duration</dt>
+          <dd className="mt-0.5">{(durationMs / 1000).toFixed(1)}s</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Input</dt>
+          <dd className="mt-0.5">{inputTokens.toLocaleString()} tokens</dd>
+        </div>
+        <div>
+          <dt className="font-bold uppercase tracking-[0.06em] text-[var(--mf-text-soft)]">Output</dt>
+          <dd className="mt-0.5">{outputTokens.toLocaleString()} tokens</dd>
+        </div>
+      </dl>
     </div>
   );
 }

@@ -10,6 +10,10 @@ import {
   createAngularRunModel,
 } from "../workflow/run.ts";
 import { applyAngularStageGateDecision } from "../workflow/proven.ts";
+import {
+  advanceAngularLiveExecution,
+  angularLiveExecutionDuration,
+} from "../workflow/live.ts";
 
 export function seedAngularPreflight(id: string): AngularPreflight {
   const primary = prepareAngularPreflight({
@@ -30,6 +34,16 @@ function approvedRunSeed(): AngularRunSeed {
   return createRunFromApprovedPreflight(approved);
 }
 
+function finishLive(run: AngularRunModel): AngularRunModel {
+  if (!run.liveExecution) return run;
+  return advanceAngularLiveExecution(
+    run,
+    run.liveExecution.startedAtMs +
+      angularLiveExecutionDuration(run.liveExecution) +
+      1,
+  );
+}
+
 export function seedAngularRun(id: string): AngularRunModel {
   if (id === "run-angular-complete") {
     const seed = approvedRunSeed();
@@ -48,17 +62,27 @@ export function seedAngularRun(id: string): AngularRunModel {
   });
 
   if (id === "run-angular-action") {
-    model = applyAngularGateDecision(model, "G02", "APPROVE");
-    model = applyAngularGateDecision(model, "G03", "APPROVE");
-    model = applyAngularGateDecision(model, "G04", "APPROVE");
-    model = applyAngularGateDecision(model, "G05", "APPROVE");
-    model = applyAngularGateDecision(model, "G06", "APPROVE");
+    model = finishLive(applyAngularGateDecision(model, "G02", "APPROVE"));
+    model = finishLive(applyAngularGateDecision(model, "G03", "APPROVE"));
+    model = finishLive(applyAngularGateDecision(model, "G04", "APPROVE"));
+    model = finishLive(applyAngularGateDecision(model, "G05", "APPROVE"));
+    model = finishLive(applyAngularGateDecision(model, "G06", "APPROVE"));
 
-    model = applyAngularStageGateDecision(model, "G07", "APPROVE");
-    model = applyAngularStageGateDecision(model, "G12", "APPROVE");
-    model = applyAngularStageGateDecision(model, "G07", "APPROVE");
-    model = applyAngularStageGateDecision(model, "G12", "APPROVE");
-    model = applyAngularStageGateDecision(model, "G07", "APPROVE");
+    model = finishLive(
+      applyAngularStageGateDecision(model, "G07", "APPROVE"),
+    );
+    model = finishLive(
+      applyAngularStageGateDecision(model, "G12", "APPROVE"),
+    );
+    model = finishLive(
+      applyAngularStageGateDecision(model, "G07", "APPROVE"),
+    );
+    model = finishLive(
+      applyAngularStageGateDecision(model, "G12", "APPROVE"),
+    );
+    model = finishLive(
+      applyAngularStageGateDecision(model, "G07", "APPROVE"),
+    );
   }
 
   return model;

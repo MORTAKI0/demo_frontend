@@ -1,3 +1,4 @@
+import type { LiveExecution } from "../../../domain/live-execution.ts";
 import type { AngularMajor, AngularRunSeed } from "./types.ts";
 
 export type AngularPreTransformGateId = "G02" | "G03" | "G04" | "G05" | "G06";
@@ -44,6 +45,28 @@ export interface AngularBaselineModel {
   steps: AngularBaselineStep[];
 }
 
+export interface AngularLlmProvenance {
+  provider: "azure_openai";
+  deployment: "gpt-5-mini";
+  role: "phase_proposer" | "phase_reviewer";
+  promptVersion: string;
+  status: "WAITING" | "RUNNING" | "SUCCEEDED";
+  durationMs: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export type AngularLiveExecutionKind =
+  | "BASELINE"
+  | "ANALYSIS"
+  | "FEASIBILITY"
+  | "PLANNING"
+  | "STAGE_PREPARATION"
+  | "STAGE_EXECUTION"
+  | "REPAIR_VALIDATION";
+
+export type AngularLiveExecution = LiveExecution<AngularLiveExecutionKind>;
+
 export interface AngularAnalysisModel {
   revision: number;
   status: "WAITING" | "READY_FOR_REVIEW" | "APPROVED";
@@ -51,6 +74,10 @@ export interface AngularAnalysisModel {
   risks: string[];
   unknowns: string[];
   reviewerVerdict: "WAITING" | "ACCEPT";
+  summary: string;
+  confidence: "WAITING" | "HIGH";
+  proposer: AngularLlmProvenance;
+  reviewer: AngularLlmProvenance;
 }
 
 export interface AngularFeasibilityModel {
@@ -67,6 +94,8 @@ export interface AngularPlanningRevision {
   status: "READY_FOR_REVIEW" | "SUPERSEDED" | "ACCEPTED";
   summary: string;
   checksum: string;
+  proposer: AngularLlmProvenance;
+  reviewer: AngularLlmProvenance;
 }
 
 export type AngularStageGateId = "G07" | "G09" | "G10" | "G11" | "G12";
@@ -229,4 +258,5 @@ export interface AngularRunModel extends AngularRunSeed {
   diagnostics: string[];
   operations: AngularOperations;
   stageExecution?: AngularStageExecution;
+  liveExecution?: AngularLiveExecution;
 }

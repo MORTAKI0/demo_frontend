@@ -5,12 +5,26 @@ import { applyG01Decision, createRunFromApprovedPreflight, prepareAngularPreflig
 import { applyAngularGateDecision, createAngularRunModel } from "../src/stacks/angular/workflow/run.ts";
 import { applyAngularStageGateDecision } from "../src/stacks/angular/workflow/proven.ts";
 import {
+  advanceAngularLiveExecution,
+  angularLiveExecutionDuration,
+} from "../src/stacks/angular/workflow/live.ts";
+import {
   createAngularPartialDelivery,
   furthestSealedStage,
   resumeAngularFromSealed,
   rollbackAngularToFurthestSealed,
 } from "../src/stacks/angular/workflow/recovery.ts";
 import { answerAngularAssistant } from "../src/stacks/angular/workflow/assistant.ts";
+
+function finishLive(run: ReturnType<typeof governedRun>) {
+  assert.ok(run.liveExecution);
+  return advanceAngularLiveExecution(
+    run,
+    run.liveExecution.startedAtMs +
+      angularLiveExecutionDuration(run.liveExecution) +
+      1,
+  );
+}
 
 function governedRun() {
   const preflight = prepareAngularPreflight({
@@ -24,7 +38,7 @@ function governedRun() {
     createRunFromApprovedPreflight(applyG01Decision(preflight, "APPROVE")),
   );
   for (const gate of ["G02", "G03", "G04", "G05", "G06"] as const) {
-    run = applyAngularGateDecision(run, gate, "APPROVE");
+    run = finishLive(applyAngularGateDecision(run, gate, "APPROVE"));
   }
   return run;
 }
@@ -32,8 +46,8 @@ function governedRun() {
 function repairRun() {
   let run = governedRun();
   for (let index = 0; index < 2; index += 1) {
-    run = applyAngularStageGateDecision(run, "G07", "APPROVE");
-    run = applyAngularStageGateDecision(run, "G12", "APPROVE");
+    run = finishLive(applyAngularStageGateDecision(run, "G07", "APPROVE"));
+    run = finishLive(applyAngularStageGateDecision(run, "G12", "APPROVE"));
   }
   return applyAngularStageGateDecision(run, "G07", "APPROVE");
 }

@@ -1,3 +1,4 @@
+import type { LiveExecution } from "../../../domain/live-execution.ts";
 import type {
   JavaJobSeed,
   JavaProfileId,
@@ -65,6 +66,28 @@ export interface JavaPipelinePhase {
   detail: string;
 }
 
+export interface JavaLlmProvenance {
+  provider: "azure_openai" | "azure_foundry";
+  deployment: "gpt-5-mini" | "Llama-3.3-70B-Instruct";
+  role: "phase_proposer" | "phase_reviewer";
+  status: "SUCCEEDED";
+  durationMs: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export type JavaLiveExecutionKind =
+  | "PREFLIGHT"
+  | "CANCELLATION"
+  | "ANALYSIS_AGENT"
+  | "PLANNING_AGENT"
+  | "ASSESSMENT_AGENT"
+  | "TRANSFORM_AGENT"
+  | "BUILD_AGENT"
+  | "TEST_VALIDATION";
+
+export type JavaLiveExecution = LiveExecution<JavaLiveExecutionKind>;
+
 export interface JavaAnalysisRevision {
   revision: number;
   sourceProfile: JavaProfileId;
@@ -72,6 +95,9 @@ export interface JavaAnalysisRevision {
   facts: string[];
   risks: string[];
   checksum: string;
+  summary: string;
+  proposer: JavaLlmProvenance;
+  reviewer: JavaLlmProvenance;
 }
 
 export interface JavaPlanningRevision {
@@ -79,6 +105,8 @@ export interface JavaPlanningRevision {
   status: "READY_FOR_REVIEW" | "SUPERSEDED" | "ACCEPTED";
   summary: string;
   checksum: string;
+  proposer: JavaLlmProvenance;
+  reviewer: JavaLlmProvenance;
 }
 
 export interface JavaAssessmentProjection {
@@ -231,4 +259,5 @@ export interface JavaJobModel extends JavaJobSeed {
     validation: "PENDING" | "PASS" | "FAILED";
   };
   finalReport: JavaFinalReportState;
+  liveExecution?: JavaLiveExecution;
 }

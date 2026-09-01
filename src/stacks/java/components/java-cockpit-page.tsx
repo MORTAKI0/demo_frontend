@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { ProductHeader } from "@/components/shared/product-header";
+import { LiveExecutionPanel } from "@/components/shared/live-execution-panel";
 import { WorkspaceResetButton } from "@/components/shared/workspace-reset-button";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -21,12 +22,13 @@ import {
   putJavaJob,
   resetJavaState,
 } from "../scenarios/java-store";
-import {
-  advanceJavaPipeline,
-  applyJavaGateDecision,
-} from "../workflow/cockpit";
+import { applyJavaGateDecision } from "../workflow/cockpit";
 import { cancelJavaMigration } from "../workflow/cancellation";
 import { applyJavaRepairDecision } from "../workflow/repair";
+import {
+  advanceJavaLiveExecution,
+  ensureJavaLiveExecution,
+} from "../workflow/live";
 import {
   acceptJavaStage4Output,
   analyzeJavaTargetVersions,
@@ -63,28 +65,34 @@ type RepairDecision = (typeof REPAIR_DECISIONS)[number];
 export function JavaCockpitPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = Array.isArray(params.jobId) ? params.jobId[0] : params.jobId;
-  const [job, setJob] = useState<JavaJobModel>(() => getJavaJob(jobId));
+  const [job, setJob] = useState<JavaJobModel>(() =>
+    ensureJavaLiveExecution(getJavaJob(jobId), Date.now()),
+  );
   const [active, setActive] = useState("overview");
   const [error, setError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
 
+  useEffect(() => {
+    if (!job.liveExecution) return;
+
+    putJavaJob(job);
+
+    const timer = window.setInterval(() => {
+      setJob((current) => {
+        const next = advanceJavaLiveExecution(current, Date.now());
+        if (next !== current) {
+          putJavaJob(next);
+        }
+        return next;
+      });
+    }, 250);
+
+    return () => window.clearInterval(timer);
+  }, [job.liveExecution?.id]);
+
   function persist(next: JavaJobModel) {
     putJavaJob(next);
     setJob(next);
-  }
-
-  function advance() {
-    try {
-      setError(null);
-      persist(advanceJavaPipeline(job));
-      setActive("pipeline");
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to advance Java pipeline.",
-      );
-    }
   }
 
   function decide(
@@ -107,6 +115,7 @@ export function JavaCockpitPage() {
       } else {
         next = applyJavaGateDecision(job, type, decision, options);
       }
+      next = ensureJavaLiveExecution(next, Date.now());
       persist(next);
       setActive("pipeline");
     } catch (caught) {
@@ -175,12 +184,6 @@ export function JavaCockpitPage() {
     }
   }
 
-  const canAdvance =
-    !job.currentGate &&
-    job.status !== "CANCELLED" &&
-    job.currentStage !== 4 &&
-    job.currentPhase !== "FINAL_REPORT";
-
   const canCancel =
     job.status !== "CANCELLED" && job.status !== "COMPLETED";
 
@@ -212,9 +215,6 @@ export function JavaCockpitPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canAdvance ? (
-              <Button onClick={advance}>Run next phase</Button>
-            ) : null}
             {canCancel ? (
               <Button variant="danger" onClick={() => setCancelOpen(true)}>
                 Cancel migration
@@ -224,6 +224,16 @@ export function JavaCockpitPage() {
         </div>
 
         <JavaCurrentAction job={job} />
+
+        {job.liveExecution ? (
+          <div className="mt-6">
+            <LiveExecutionPanel
+              execution={job.liveExecution}
+              title={job.currentAction}
+              description="The Java orchestrator is advancing through the active execution phase. Reviewed PhaseGates appear only after the phase evidence is complete."
+            />
+          </div>
+        ) : null}
 
         {error ? (
           <div role="alert" className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">

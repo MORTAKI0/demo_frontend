@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { ProductHeader } from "@/components/shared/product-header";
+import { LiveExecutionPanel } from "@/components/shared/live-execution-panel";
 import { WorkspaceResetButton } from "@/components/shared/workspace-reset-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs } from "@/components/ui/tabs";
@@ -18,6 +19,7 @@ import {
   resetAngularState,
 } from "../scenarios/angular-store";
 import { applyAngularGateDecision } from "../workflow/run";
+import { advanceAngularLiveExecution } from "../workflow/live";
 import { applyAngularStageGateDecision } from "../workflow/proven";
 import {
   createAngularPartialDelivery,
@@ -50,6 +52,22 @@ export function AngularControlTowerPage() {
   const [active, setActive] = useState("overview");
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!run.liveExecution) return;
+
+    const timer = window.setInterval(() => {
+      setRun((current) => {
+        const next = advanceAngularLiveExecution(current, Date.now());
+        if (next !== current) {
+          putAngularRun(next);
+        }
+        return next;
+      });
+    }, 250);
+
+    return () => window.clearInterval(timer);
+  }, [run.liveExecution?.id]);
+
   function handleDecision(
     gate: AngularPreTransformGateId,
     decision: AngularGovernanceDecision,
@@ -57,10 +75,20 @@ export function AngularControlTowerPage() {
   ) {
     try {
       setError(null);
-      const next = applyAngularGateDecision(run, gate, decision, comment);
+      const nowMs = Date.now();
+      const next = applyAngularGateDecision(
+        run,
+        gate,
+        decision,
+        comment,
+        new Date(nowMs).toISOString(),
+        nowMs,
+      );
       putAngularRun(next);
       setRun(next);
-      if (decision === "REQUEST_MODIFICATION") setActive("pipeline");
+      if (decision === "REQUEST_MODIFICATION" || next.liveExecution) {
+        setActive("pipeline");
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to apply governance decision.");
     }
@@ -73,7 +101,15 @@ export function AngularControlTowerPage() {
   ) {
     try {
       setError(null);
-      const next = applyAngularStageGateDecision(run, gate, decision, comment);
+      const nowMs = Date.now();
+      const next = applyAngularStageGateDecision(
+        run,
+        gate,
+        decision,
+        comment,
+        new Date(nowMs).toISOString(),
+        nowMs,
+      );
       putAngularRun(next);
       setRun(next);
       setActive("pipeline");
@@ -122,10 +158,26 @@ export function AngularControlTowerPage() {
               Angular {run.sourceMajor} → Angular {run.targetMajor} · governed adjacent-major execution
             </p>
           </div>
-          <p className="text-xs text-[var(--mf-text-soft)]">Elapsed 18m 42s · evidence synchronized</p>
+          <p className="text-xs text-[var(--mf-text-soft)]">
+            {run.liveExecution
+              ? "Execution active · live events synchronized"
+              : run.currentGate
+                ? "Awaiting governed decision · evidence synchronized"
+                : "Evidence synchronized"}
+          </p>
         </div>
 
         <AngularCurrentAction run={run} />
+
+        {run.liveExecution ? (
+          <div className="mt-6">
+            <LiveExecutionPanel
+              execution={run.liveExecution}
+              title={run.currentAction}
+              description="The workflow is progressing through persisted execution nodes. The next human gate opens only after the active execution finishes."
+            />
+          </div>
+        ) : null}
 
         {error ? (
           <div role="alert" className="mt-5 rounded-lg border border-[#efc1c1] bg-[var(--mf-danger-soft)] p-3 text-sm text-[var(--mf-danger)]">

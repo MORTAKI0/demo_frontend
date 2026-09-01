@@ -1,4 +1,5 @@
 import { stableDisplayChecksum } from "../../../scenarios/runtime/checksum.ts";
+import { createAngularLiveExecution } from "./live-definitions.ts";
 import type { AngularRouteStep } from "../domain/types.ts";
 import type {
   AngularProvenGroup,
@@ -303,6 +304,7 @@ export function applyAngularStageGateDecision(
   decision: AngularStageGateDecision,
   comment = "",
   now = "2026-08-31T20:05:00+01:00",
+  runtimeStartedAtMs = Date.parse(now),
 ): AngularRunModel {
   const stage = run.stageExecution;
   if (!stage) throw new Error("No active Angular stage execution is available.");
@@ -316,159 +318,53 @@ export function applyAngularStageGateDecision(
 
   if (decision === "REQUEST_MODIFICATION") {
     if (gateId === "G07") {
-      return {
-        ...run,
-        currentAction: "Review revised stage-start evidence",
-        diagnostics: [...run.diagnostics, "G07 revision requested; runtime binding remains unchanged until refreshed evidence is reviewed."],
-      };
-    }
-
-    const current = stage.repairAttempts.at(-1);
-    const attempts = stage.repairAttempts.map((attempt, index, all) =>
-      index === all.length - 1
-        ? { ...attempt, status: "REVIEWER_REQUESTED_CHANGES" as const }
-        : attempt,
-    );
-
-    if (attempts.length >= 3) {
-      return {
-        ...run,
-        state: "BLOCKED",
-        phase: "BLOCKED",
-        currentAction: "Repair attempt policy exhausted",
-        diagnostics: [...run.diagnostics, "Maximum governed repair attempts reached."],
-      };
-    }
-
-    const attempt = attempts.length + 1;
-    attempts.push({
-      id: `${stage.stageId}-repair-${attempt}`,
-      attempt,
-      status: "READY_FOR_G10",
-      failureCategory: current?.failureCategory ?? "TEST_OR_BUILD_REGRESSION",
-      proposalKind: "SOURCE_PATCH",
-      rationale: comment.trim() || "Revised source patch incorporates reviewer feedback.",
-      changedFiles: ["src/app/order.service.spec.ts"],
-      diff: "- legacy expectation\n+ reviewed compatibility expectation",
-      reviewerVerdict: "ACCEPT",
-      causalResult: "PASS",
-      risk: "MEDIUM",
-    });
-    return {
-      ...run,
-      currentAction: "Review revised repair proposal",
-      stageExecution: { ...stage, repairAttempts: attempts },
-    };
-  }
-
-  const decidedStage = approveGate(stage, gateId, decision, comment, now);
-  if (decision === "REJECT") {
-    return {
-      ...run,
-      state: "BLOCKED",
-      phase: "BLOCKED",
-      currentAction: `Migration blocked by ${gateId} rejection`,
-      stageExecution: decidedStage,
-    };
-  }
-
-  if (gateId === "G07") {
-    const shouldFail = stage.source === 13 && stage.target === 14;
-    const validation = shouldFail ? "FAILED" as const : "PASS" as const;
-    let executed: AngularStageExecution = {
+    const executing: AngularStageExecution = {
       ...decidedStage,
-      status: shouldFail ? "ACTION_REQUIRED" : "WAITING_COMPLETION",
-      groups: completedGroups(validation),
-      validation,
+      status: "EXECUTING",
+      groups: pendingGroups(),
+      validation: "PENDING",
     };
-
-    if (shouldFail) {
-      executed = unlockGate(
-        { ...executed, repairAttempts: repairAttempts({ ...run, stageExecution: executed }) },
-        "G10",
-      );
-      return {
-        ...run,
-        state: "RUNNING",
-        phase: "REPAIR",
-        currentGate: "G10",
-        currentAction: "Review causally valid repair proposal",
-        route: run.route.map((step) =>
-          step.id === stage.stageId ? { ...step, status: "ACTION_REQUIRED" as const } : step,
-        ),
-        stageExecution: executed,
-        evidence: [
-          ...run.evidence,
-          {
-            id: `${run.id}-${stage.stageId}-validation-failure`,
-            category: "FAILURE",
-            title: "Validation regression detected",
-            summary: "Build/test validation failed after the governed transformation.",
-            timestamp: now,
-            checksum: stableDisplayChecksum(`${run.id}:${stage.stageId}:failure`),
-          },
-          {
-            id: `${run.id}-${stage.stageId}-causal-reject`,
-            category: "REPAIR",
-            title: "Unrelated dependency mutation rejected",
-            summary: "REPAIR_CAUSAL_KIND_MISMATCH prevented a dependency change that was not authorized by the observed failure.",
-            timestamp: now,
-            checksum: stableDisplayChecksum(`${run.id}:${stage.stageId}:causal-reject`),
-          },
-        ],
-      };
-    }
-
-    executed = unlockGate(executed, "G12");
     return {
       ...run,
+      state: "RUNNING",
       phase: "TRANSFORMATION",
-      currentGate: "G12",
-      currentAction: `Review validated completion evidence for Angular ${stage.source} → ${stage.target}`,
-      stageExecution: executed,
-      evidence: [
-        ...run.evidence,
-        {
-          id: `${run.id}-${stage.stageId}-validation-pass`,
-          category: "VALIDATION",
-          title: "PROVEN validation passed",
-          summary: "Clean validation generation completed install, dependency proof, build, tests, and diagnostic aggregation.",
-          timestamp: now,
-          checksum: stableDisplayChecksum(`${run.id}:${stage.stageId}:validation-pass`),
-        },
-      ],
+      currentGate: null,
+      currentAction: `Executing PROVEN Angular ${stage.source} → ${stage.target} migration`,
+      route: run.route.map((step) =>
+        step.id === stage.stageId
+          ? { ...step, status: "RUNNING" as const }
+          : step,
+      ),
+      stageExecution: executing,
+      liveExecution: createAngularLiveExecution(
+        "STAGE_EXECUTION",
+        runtimeStartedAtMs,
+        { source: stage.source, target: stage.target },
+      ),
     };
   }
 
   if (gateId === "G10") {
     const attempts = decidedStage.repairAttempts.map((attempt, index, all) =>
-      index === all.length - 1 ? { ...attempt, status: "VALIDATED" as const } : attempt,
+      index === all.length - 1
+        ? { ...attempt, status: "APPLIED" as const }
+        : attempt,
     );
-    let repaired: AngularStageExecution = {
-      ...decidedStage,
-      status: "ACTION_REQUIRED",
-      validation: "PASS",
-      groups: completedGroups("PASS"),
-      repairAttempts: attempts,
-    };
-    repaired = unlockGate(repaired, "G11");
     return {
       ...run,
       phase: "REPAIR",
-      currentGate: "G11",
-      currentAction: "Review repaired candidate validation evidence",
-      stageExecution: repaired,
-      evidence: [
-        ...run.evidence,
-        {
-          id: `${run.id}-${stage.stageId}-repair-validation`,
-          category: "REPAIR",
-          title: "Bounded repair applied and revalidated",
-          summary: "The approved source patch passed a clean full validation generation.",
-          timestamp: now,
-          checksum: stableDisplayChecksum(`${run.id}:${stage.stageId}:repair-valid`),
-        },
-      ],
+      currentGate: null,
+      currentAction: "Applying reviewed repair and running clean validation",
+      stageExecution: {
+        ...decidedStage,
+        status: "EXECUTING",
+        repairAttempts: attempts,
+      },
+      liveExecution: createAngularLiveExecution(
+        "REPAIR_VALIDATION",
+        runtimeStartedAtMs,
+        { source: stage.source, target: stage.target },
+      ),
     };
   }
 
@@ -492,13 +388,157 @@ export function applyAngularStageGateDecision(
     };
   }
 
-  return sealAndAdvance(run, decidedStage, now);
+  return sealAndAdvance(run, decidedStage, now, runtimeStartedAtMs);
+}
+
+export function completeAngularApprovedStageExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  const stage = run.stageExecution;
+  if (!stage) {
+    throw new Error("No active Angular stage execution is available.");
+  }
+  if (stage.gates.G07.status !== "APPROVED") {
+    throw new Error("G07 must be approved before PROVEN stage execution can complete.");
+  }
+
+  const shouldFail = stage.source === 13 && stage.target === 14;
+  const validation = shouldFail ? "FAILED" as const : "PASS" as const;
+  let executed: AngularStageExecution = {
+    ...stage,
+    status: shouldFail ? "ACTION_REQUIRED" : "WAITING_COMPLETION",
+    groups: completedGroups(validation),
+    validation,
+  };
+
+  if (shouldFail) {
+    executed = unlockGate(
+      {
+        ...executed,
+        repairAttempts: repairAttempts({
+          ...run,
+          stageExecution: executed,
+        }),
+      },
+      "G10",
+    );
+    return {
+      ...run,
+      state: "RUNNING",
+      phase: "REPAIR",
+      currentGate: "G10",
+      currentAction: "Review causally valid repair proposal",
+      liveExecution: undefined,
+      route: run.route.map((step) =>
+        step.id === stage.stageId
+          ? { ...step, status: "ACTION_REQUIRED" as const }
+          : step,
+      ),
+      stageExecution: executed,
+      evidence: [
+        ...run.evidence,
+        {
+          id: `${run.id}-${stage.stageId}-validation-failure`,
+          category: "FAILURE",
+          title: "Validation regression detected",
+          summary:
+            "Build/test validation failed after the governed transformation.",
+          timestamp: now,
+          checksum: stableDisplayChecksum(
+            `${run.id}:${stage.stageId}:failure`,
+          ),
+        },
+        {
+          id: `${run.id}-${stage.stageId}-causal-reject`,
+          category: "REPAIR",
+          title: "Unrelated dependency mutation rejected",
+          summary:
+            "REPAIR_CAUSAL_KIND_MISMATCH prevented a dependency change that was not authorized by the observed failure.",
+          timestamp: now,
+          checksum: stableDisplayChecksum(
+            `${run.id}:${stage.stageId}:causal-reject`,
+          ),
+        },
+      ],
+    };
+  }
+
+  executed = unlockGate(executed, "G12");
+  return {
+    ...run,
+    phase: "TRANSFORMATION",
+    currentGate: "G12",
+    currentAction: `Review validated completion evidence for Angular ${stage.source} → ${stage.target}`,
+    liveExecution: undefined,
+    stageExecution: executed,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-${stage.stageId}-validation-pass`,
+        category: "VALIDATION",
+        title: "PROVEN validation passed",
+        summary:
+          "Source proof, discovery, dependency resolution, migration, target proof, and clean validation completed before G12.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(
+          `${run.id}:${stage.stageId}:validation-pass`,
+        ),
+      },
+    ],
+  };
+}
+
+export function completeAngularRepairValidationExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  const stage = run.stageExecution;
+  if (!stage) {
+    throw new Error("No active Angular stage execution is available.");
+  }
+  const attempts = stage.repairAttempts.map((attempt, index, all) =>
+    index === all.length - 1
+      ? { ...attempt, status: "VALIDATED" as const }
+      : attempt,
+  );
+  let repaired: AngularStageExecution = {
+    ...stage,
+    status: "ACTION_REQUIRED",
+    validation: "PASS",
+    groups: completedGroups("PASS"),
+    repairAttempts: attempts,
+  };
+  repaired = unlockGate(repaired, "G11");
+  return {
+    ...run,
+    phase: "REPAIR",
+    currentGate: "G11",
+    currentAction: "Review repaired candidate validation evidence",
+    liveExecution: undefined,
+    stageExecution: repaired,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-${stage.stageId}-repair-validation`,
+        category: "REPAIR",
+        title: "Bounded repair applied and revalidated",
+        summary:
+          "The approved source patch passed clean build/test validation before G11.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(
+          `${run.id}:${stage.stageId}:repair-valid`,
+        ),
+      },
+    ],
+  };
 }
 
 function sealAndAdvance(
   run: AngularRunModel,
   stage: AngularStageExecution,
   now: string,
+  runtimeStartedAtMs: number,
 ): AngularRunModel {
   const sealedStage: AngularStageExecution = {
     ...stage,
@@ -549,10 +589,16 @@ function sealAndAdvance(
     };
   }
 
-  return prepareProvenStage({
+  return {
     ...base,
     phase: "STAGE_PREPARATION",
     stageExecution: undefined,
-    currentAction: `Materialize next adjacent stage Angular ${next.source} → ${next.target}`,
-  });
+    currentGate: null,
+    currentAction: `Preparing next adjacent stage Angular ${next.source} → ${next.target}`,
+    liveExecution: createAngularLiveExecution(
+      "STAGE_PREPARATION",
+      runtimeStartedAtMs,
+      { source: next.source, target: next.target },
+    ),
+  };
 }

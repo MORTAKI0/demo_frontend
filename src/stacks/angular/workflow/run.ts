@@ -1,6 +1,7 @@
 import { stableDisplayChecksum } from "../../../scenarios/runtime/checksum.ts";
 import type { AngularRunSeed } from "../domain/types.ts";
 import { prepareProvenStage } from "./proven.ts";
+import { createAngularLiveExecution } from "./live-definitions.ts";
 import type {
   AngularAnalysisModel,
   AngularBaselineModel,
@@ -9,9 +10,32 @@ import type {
   AngularGovernanceDecision,
   AngularPlanningRevision,
   AngularPreTransformGateId,
+  AngularLlmProvenance,
   AngularRunModel,
   AngularCommandRecord,
 } from "../domain/run-types.ts";
+
+function llmProvenance(
+  role: AngularLlmProvenance["role"],
+  status: AngularLlmProvenance["status"],
+  durationMs = 0,
+  inputTokens = 0,
+  outputTokens = 0,
+): AngularLlmProvenance {
+  return {
+    provider: "azure_openai",
+    deployment: "gpt-5-mini",
+    role,
+    promptVersion:
+      role === "phase_proposer"
+        ? "prompt-phase-proposer-v2.3"
+        : "prompt-phase-reviewer-v2.3",
+    status,
+    durationMs,
+    inputTokens,
+    outputTokens,
+  };
+}
 
 function baselineCommand(
   runId: string,
@@ -77,6 +101,10 @@ const initialAnalysis: AngularAnalysisModel = {
   risks: [],
   unknowns: [],
   reviewerVerdict: "WAITING",
+  summary: "Analysis has not started.",
+  confidence: "WAITING",
+  proposer: llmProvenance("phase_proposer", "WAITING"),
+  reviewer: llmProvenance("phase_reviewer", "WAITING"),
 };
 
 const initialFeasibility: AngularFeasibilityModel = {
@@ -106,7 +134,14 @@ export function createAngularRunModel(seed: AngularRunSeed): AngularRunModel {
     analysis: seed.state === "COMPLETED" ? completedAnalysis() : initialAnalysis,
     feasibility: seed.state === "COMPLETED" ? { ...completedFeasibility() } : initialFeasibility,
     planning: seed.state === "COMPLETED"
-      ? [{ revision: 1, status: "ACCEPTED", summary: "Adjacent-major execution plan accepted.", checksum: stableDisplayChecksum(`${seed.id}:plan:1`) }]
+      ? [{
+          revision: 1,
+          status: "ACCEPTED",
+          summary: "Adjacent-major execution plan accepted.",
+          checksum: stableDisplayChecksum(`${seed.id}:plan:1`),
+          proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 2216, 512),
+          reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1260, 246),
+        }]
       : [],
     evidence: [
       {
@@ -145,7 +180,7 @@ export function createAngularRunModel(seed: AngularRunSeed): AngularRunModel {
   };
 }
 
-function completedBaseline(): AngularBaselineModel {
+export function completedBaseline(): AngularBaselineModel {
   return {
     outcome: "QUALIFIED_WITH_KNOWN_FAILURES",
     knownFailures: ["1 legacy test warning accepted as source baseline evidence."],
@@ -156,18 +191,25 @@ function completedBaseline(): AngularBaselineModel {
   };
 }
 
-function completedAnalysis(): AngularAnalysisModel {
+export function completedAnalysis(
+  status: AngularAnalysisModel["status"] = "APPROVED",
+): AngularAnalysisModel {
   return {
     revision: 1,
-    status: "APPROVED",
+    status,
     facts: ["3 Angular projects", "package-lock authority", "standard Angular CLI builder"],
     risks: ["One third-party test package requires transition at a later stage."],
     unknowns: [],
     reviewerVerdict: "ACCEPT",
+    summary:
+      "The application is a standard Angular CLI workspace with three projects, lockfile authority, and one bounded third-party migration risk.",
+    confidence: "HIGH",
+    proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 1842, 436),
+    reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1028, 214),
   };
 }
 
-function completedFeasibility(): AngularFeasibilityModel {
+export function completedFeasibility(): AngularFeasibilityModel {
   return {
     status: "APPROVED",
     coreCompatibility: "SUPPORTED",
@@ -217,6 +259,7 @@ export function applyAngularGateDecision(
   decision: AngularGovernanceDecision,
   comment = "",
   now = "2026-08-31T19:45:00+01:00",
+  runtimeStartedAtMs = Date.parse(now),
 ): AngularRunModel {
   if (run.currentGate !== gateId) {
     throw new Error(`${gateId} is not the current review boundary.`);
@@ -278,6 +321,8 @@ export function applyAngularGateDecision(
             status: "READY_FOR_REVIEW" as const,
             summary: comment.trim() || "Migration plan revised against reviewer feedback.",
             checksum: stableDisplayChecksum(`${run.id}:plan:${nextRevision}`),
+            proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 2140, 498),
+            reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1190, 238),
           },
         ]
       : withHistory.planning;
@@ -295,41 +340,22 @@ export function applyAngularGateDecision(
       gates: { ...withHistory.gates, [gateId]: { ...withHistory.gates[gateId], status: "APPROVED" } },
     },
     gateId,
+    runtimeStartedAtMs,
   );
 }
 
 function progressApprovedGate(
   run: AngularRunModel,
   gateId: AngularPreTransformGateId,
+  runtimeStartedAtMs: number,
 ): AngularRunModel {
   if (gateId === "G02") {
     return {
       ...run,
       phase: "BASELINE",
-      currentGate: "G03",
-      currentAction: "Review qualified baseline and known source failures",
-      gates: unlock(run.gates, "G03"),
-      baseline: completedBaseline(),
-      operations: {
-        ...run.operations,
-        commands: [
-          ...run.operations.commands,
-          baselineCommand(run.id, "BASELINE_INSTALL", "npm ci", "2026-08-31T19:46:00+01:00", ["Lockfile authority accepted.", "Install completed."]),
-          baselineCommand(run.id, "BASELINE_BUILD", "npm run build", "2026-08-31T19:46:20+01:00", ["Baseline build completed with exit code 0."]),
-          baselineCommand(run.id, "BASELINE_TEST", "npm test", "2026-08-31T19:46:40+01:00", ["Known source warning classified.", "Baseline tests completed."]),
-        ],
-      },
-      evidence: [
-        ...run.evidence,
-        {
-          id: `${run.id}-baseline-qualified`,
-          category: "BASELINE",
-          title: "Baseline qualification recorded",
-          summary: "Install, build, tests, lint, parity, and qualification completed before migration.",
-          timestamp: "2026-08-31T19:46:00+01:00",
-          checksum: stableDisplayChecksum(`${run.id}:baseline:qualified`),
-        },
-      ],
+      currentGate: null,
+      currentAction: "Baseline execution running",
+      liveExecution: createAngularLiveExecution("BASELINE", runtimeStartedAtMs),
     };
   }
 
@@ -337,10 +363,9 @@ function progressApprovedGate(
     return {
       ...run,
       phase: "ANALYSIS",
-      currentGate: "G04",
-      currentAction: "Review Analysis Agent output and independent reviewer verdict",
-      gates: unlock(run.gates, "G04"),
-      analysis: { ...completedAnalysis(), status: "READY_FOR_REVIEW" },
+      currentGate: null,
+      currentAction: "Analysis Proposer and independent Reviewer are running",
+      liveExecution: createAngularLiveExecution("ANALYSIS", runtimeStartedAtMs),
     };
   }
 
@@ -348,29 +373,21 @@ function progressApprovedGate(
     return {
       ...run,
       phase: "FEASIBILITY",
-      currentGate: "G05",
-      currentAction: "Review migration readiness and compatibility evidence",
-      gates: unlock(run.gates, "G05"),
+      currentGate: null,
+      currentAction: "Compatibility and migration readiness analysis running",
       analysis: { ...run.analysis, status: "APPROVED" },
-      feasibility: { ...completedFeasibility(), status: "READY_FOR_REVIEW" },
+      liveExecution: createAngularLiveExecution("FEASIBILITY", runtimeStartedAtMs),
     };
   }
 
   if (gateId === "G05") {
-    const revision: AngularPlanningRevision = {
-      revision: 1,
-      status: "READY_FOR_REVIEW",
-      summary: "Adjacent-major migration plan with bounded validation and stage sealing.",
-      checksum: stableDisplayChecksum(`${run.id}:plan:1`),
-    };
     return {
       ...run,
       phase: "PLANNING",
-      currentGate: "G06",
-      currentAction: "Review migration plan and execution contract",
-      gates: unlock(run.gates, "G06"),
+      currentGate: null,
+      currentAction: "Planning Proposer and independent Reviewer are running",
       feasibility: { ...run.feasibility, status: "APPROVED" },
-      planning: [revision],
+      liveExecution: createAngularLiveExecution("PLANNING", runtimeStartedAtMs),
     };
   }
 
@@ -380,13 +397,169 @@ function progressApprovedGate(
       : revision,
   );
 
-  return prepareProvenStage({
+  const nextStage = run.route.find((step) => step.status !== "SEALED");
+  return {
     ...run,
     phase: "STAGE_PREPARATION",
     currentGate: null,
-    currentAction: `Resolve and certify runtime for Angular ${run.route[0]?.source} → ${run.route[0]?.target}`,
+    currentAction: nextStage
+      ? `Resolving and certifying runtime for Angular ${nextStage.source} → ${nextStage.target}`
+      : "Preparing requested target completion",
     planning: acceptedPlanning,
     state: "RUNNING",
+    liveExecution: createAngularLiveExecution(
+      "STAGE_PREPARATION",
+      runtimeStartedAtMs,
+      nextStage
+        ? { source: nextStage.source, target: nextStage.target }
+        : {},
+    ),
+  };
+}
+
+export function completeAngularBaselineExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  return {
+    ...run,
+    phase: "BASELINE",
+    currentGate: "G03",
+    currentAction: "Review qualified baseline and known source failures",
+    gates: unlock(run.gates, "G03"),
+    baseline: completedBaseline(),
+    liveExecution: undefined,
+    operations: {
+      ...run.operations,
+      commands: [
+        ...run.operations.commands,
+        baselineCommand(run.id, "BASELINE_INSTALL", "npm ci --include=optional", now, [
+          "Lockfile authority accepted.",
+          "Install completed.",
+        ]),
+        baselineCommand(run.id, "BASELINE_BUILD", "npm run build", now, [
+          "Baseline build completed with exit code 0.",
+        ]),
+        baselineCommand(run.id, "BASELINE_TEST", "npm test -- --watch=false", now, [
+          "Known source warning classified.",
+          "Baseline tests completed.",
+        ]),
+      ],
+    },
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-baseline-qualified`,
+        category: "BASELINE",
+        title: "Baseline qualification recorded",
+        summary:
+          "Install, build, tests, lint, parity, and qualification completed before migration.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(`${run.id}:baseline:qualified`),
+      },
+    ],
+  };
+}
+
+export function completeAngularAnalysisExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  return {
+    ...run,
+    phase: "ANALYSIS",
+    currentGate: "G04",
+    currentAction: "Review Analysis Proposer output and independent Reviewer verdict",
+    gates: unlock(run.gates, "G04"),
+    analysis: completedAnalysis("READY_FOR_REVIEW"),
+    liveExecution: undefined,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-analysis-completed`,
+        category: "ANALYSIS",
+        title: "Analysis Proposer + independent Reviewer completed",
+        summary:
+          "Azure OpenAI proposer and reviewer outputs were schema-validated and bound to the G04 evidence package.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(`${run.id}:analysis:completed`),
+      },
+    ],
+  };
+}
+
+export function completeAngularFeasibilityExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  return {
+    ...run,
+    phase: "FEASIBILITY",
+    currentGate: "G05",
+    currentAction: "Review migration readiness and compatibility evidence",
+    gates: unlock(run.gates, "G05"),
+    feasibility: { ...completedFeasibility(), status: "READY_FOR_REVIEW" },
+    liveExecution: undefined,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-feasibility-completed`,
+        category: "FEASIBILITY",
+        title: "Compatibility and feasibility analysis completed",
+        summary:
+          "Core, runtime, third-party, and lockfile evidence are ready for G05 review.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(`${run.id}:feasibility:completed`),
+      },
+    ],
+  };
+}
+
+export function completeAngularPlanningExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  const revision: AngularPlanningRevision = {
+    revision: run.planning.length + 1,
+    status: "READY_FOR_REVIEW",
+    summary:
+      "Adjacent-major migration plan with bounded validation, runtime binding, independent review, and stage sealing.",
+    checksum: stableDisplayChecksum(
+      `${run.id}:plan:${run.planning.length + 1}`,
+    ),
+    proposer: llmProvenance("phase_proposer", "SUCCEEDED", 1800, 2216, 512),
+    reviewer: llmProvenance("phase_reviewer", "SUCCEEDED", 1600, 1260, 246),
+  };
+  return {
+    ...run,
+    phase: "PLANNING",
+    currentGate: "G06",
+    currentAction: "Review migration plan and execution contract",
+    gates: unlock(run.gates, "G06"),
+    planning: [...run.planning, revision],
+    liveExecution: undefined,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-planning-${revision.revision}-completed`,
+        category: "PLANNING",
+        title: `Planning revision #${revision.revision} reviewed`,
+        summary:
+          "Planning Proposer and independent Reviewer completed before G06 was opened.",
+        timestamp: now,
+        checksum: revision.checksum,
+      },
+    ],
+  };
+}
+
+export function completeAngularStagePreparationExecution(
+  run: AngularRunModel,
+): AngularRunModel {
+  return prepareProvenStage({
+    ...run,
+    liveExecution: undefined,
+    phase: "STAGE_PREPARATION",
   });
 }
 
