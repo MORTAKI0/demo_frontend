@@ -27,29 +27,41 @@ function timingOperationForNode(
       return "STAGE_BINDING";
     case "source_install_same_authority":
       return "SOURCE_INSTALL";
+    case "source_tree":
+      return "CONTROL_PLANE";
     case "source_version_proof":
       return "SOURCE_PROOF";
     case "source_build":
       return "SOURCE_BUILD";
     case "source_test":
       return "SOURCE_TEST";
+    case "prepare_discovery_toolchain":
+    case "prove_discovery_cli_authority":
+    case "assess_discovery":
+      return "CONTROL_PLANE";
     case "run_discovery":
       return "DISCOVERY";
     case "lock_resolution":
       return "LOCK_GENERATION";
     case "target_install_same_authority":
       return "TARGET_INSTALL";
+    case "target_tree":
+      return "CONTROL_PLANE";
     case "target_version_proof":
       return "TARGET_PROOF";
     case "execute_migration_owner":
       return "MIGRATION_OWNER";
     case "validation_install":
       return "VALIDATION_INSTALL";
-
+    case "validation_tree":
+    case "validation_version_proof":
+      return "CONTROL_PLANE";
     case "validation_build":
       return "VALIDATION_BUILD";
     case "validation_test":
       return "VALIDATION_TEST";
+    case "diagnostic_delta":
+      return "CONTROL_PLANE";
     case "aggregate_proven_validation":
       return "DIAGNOSTIC_AGGREGATION";
     case "promotion_pending":
