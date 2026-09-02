@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { validateUnifiedDiff } from "../src/components/ui/git-diff.ts";
+
 import type { AngularMajor } from "../src/stacks/angular/domain/types.ts";
 import {
   applyG01Decision,
@@ -117,6 +119,7 @@ test("20 to 21 exposes the source-backed final repair proposal before G10 approv
     /jest-preset-angular\/setup-env\/zone/,
   );
   assert.match(active.diff, /setupZoneTestEnv\(\);/);
+  assert.deepEqual(validateUnifiedDiff(active.diff), []);
   assert.deepEqual(active.proposer, {
     role: "repair_proposer",
     task: "repair_diagnosis",
