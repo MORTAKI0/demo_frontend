@@ -58,6 +58,8 @@ test("13 to 14 is not used as a fabricated Main Repair LLM failure", () => {
 test("20 to 21 exposes the source-backed final repair proposal before G10 approval", () => {
   let run = governedRun(20, 21);
   run = finishLive(applyAngularStageGateDecision(run, "G07", "APPROVE"));
+  assert.equal(run.liveExecution?.kind, "REPAIR_REVIEW");
+  run = finishLive(run);
 
   assert.equal(run.currentGate, "G10");
   assert.equal(run.stageExecution?.validation, "FAILED");
@@ -127,6 +129,7 @@ test("20 to 21 exposes the source-backed final repair proposal before G10 approv
 test("G10 approval applies only the active reviewed repair then revalidates", () => {
   let run = governedRun(20, 21);
   run = finishLive(applyAngularStageGateDecision(run, "G07", "APPROVE"));
+  run = finishLive(run);
 
   const before = run.stageExecution?.repairAttempts.at(-1);
   assert.ok(before);
