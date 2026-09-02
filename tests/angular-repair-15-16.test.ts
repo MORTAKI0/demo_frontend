@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { validateUnifiedDiff } from "../src/components/ui/git-diff.ts";
+
 import {
   applyG01Decision,
   createRunFromApprovedPreflight,
@@ -82,11 +84,18 @@ test("15 to 16 runs a governed lint-tooling Repair LLM review before G10", () =>
     "angular.json",
     ".eslintrc.json",
   ]);
+  assert.match(active?.diff ?? "", /^diff --git a\/package\.json b\/package\.json$/m);
+  assert.match(active?.diff ?? "", /^--- a\/package\.json$/m);
+  assert.match(active?.diff ?? "", /^\+\+\+ b\/package\.json$/m);
+  assert.match(active?.diff ?? "", /^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/m);
+  assert.match(active?.diff ?? "", /^diff --git a\/angular\.json b\/angular\.json$/m);
+  assert.match(active?.diff ?? "", /^diff --git a\/\.eslintrc\.json b\/\.eslintrc\.json$/m);
   assert.match(active?.diff ?? "", /@angular-devkit\/build-angular:tslint/);
   assert.match(active?.diff ?? "", /@angular-eslint\/builder:lint/);
   assert.match(active?.diff ?? "", /codelyzer/);
   assert.match(active?.diff ?? "", /lintFilePatterns/);
   assert.deepEqual(active?.validationTargets, ["lint", "build", "test"]);
+  assert.deepEqual(validateUnifiedDiff(active?.diff ?? ""), []);
 });
 
 test("15 to 16 G10 approval applies tooling transition then validates lint build and tests", () => {

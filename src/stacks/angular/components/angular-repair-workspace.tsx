@@ -1,3 +1,4 @@
+import { GitDiffView } from "@/components/ui/git-diff-view";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type {
@@ -35,6 +36,8 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
           const toolingTransition =
             attempt.proposalKind === "TOOLING_TRANSITION";
           const sourcePatch = attempt.proposalKind === "SOURCE_PATCH";
+          const hasUnifiedGitPatch = attempt.diff.startsWith("diff --git ");
+          const operationEvidence = attempt.diff;
 
           return (
             <details
@@ -110,22 +113,38 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
                   </div>
                 ) : null}
 
-                <div className="mt-4 rounded-lg bg-[var(--mf-graphite)] p-4 text-xs text-[#dbe3ee]">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#8390a4]">
-                    {sourcePatch
-                      ? "Candidate diff"
-                      : toolingTransition
-                        ? "Governed tooling transition"
-                        : governedOperation
-                          ? "Governed operation"
-                          : "Bound repair evidence"}
-                  </p>
-                  <p className="mb-3 font-mono text-[10px] text-[#aeb8c8]">
-                    {attempt.changedFiles.join(", ")}
-                  </p>
-                  <pre className="whitespace-pre-wrap font-mono leading-5">
-                    {attempt.diff}
-                  </pre>
+                <div className="mt-4">
+                  <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+                        {sourcePatch
+                          ? "Candidate diff"
+                          : toolingTransition
+                            ? "Governed tooling transition"
+                            : governedOperation
+                              ? "Governed operation"
+                              : "Bound repair evidence"}
+                      </p>
+                      <p className="mt-1 font-mono text-[10px] text-[var(--mf-text-soft)]">
+                        {attempt.changedFiles.join(", ")}
+                      </p>
+                    </div>
+                    {hasUnifiedGitPatch ? (
+                      <span className="rounded-full border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] px-2.5 py-1 font-mono text-[9px] font-semibold text-[var(--mf-text-muted)]">
+                        unified diff
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {hasUnifiedGitPatch ? (
+                    <GitDiffView diff={attempt.diff} />
+                  ) : (
+                    <div className="rounded-lg bg-[var(--mf-graphite)] p-4 text-xs text-[#dbe3ee]">
+                      <pre className="whitespace-pre-wrap font-mono leading-5">
+                        {operationEvidence}
+                      </pre>
+                    </div>
+                  )}
                 </div>
 
                 {attempt.validationTargets?.length ? (
