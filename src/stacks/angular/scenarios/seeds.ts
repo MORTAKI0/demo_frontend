@@ -68,18 +68,17 @@ export function seedAngularRun(id: string): AngularRunModel {
     model = finishLive(applyAngularGateDecision(model, "G05", "APPROVE"));
     model = finishLive(applyAngularGateDecision(model, "G06", "APPROVE"));
 
-    model = finishLive(
-      applyAngularStageGateDecision(model, "G07", "APPROVE"),
-    );
-    model = finishLive(
-      applyAngularStageGateDecision(model, "G12", "APPROVE"),
-    );
-    model = finishLive(
-      applyAngularStageGateDecision(model, "G07", "APPROVE"),
-    );
-    model = finishLive(
-      applyAngularStageGateDecision(model, "G12", "APPROVE"),
-    );
+    // Keep the seeded action demo focused on the strongest source-backed
+    // repair story: seal 11→20, then stop at the 20→21 G10 package.
+    for (let stageIndex = 0; stageIndex < 9; stageIndex += 1) {
+      model = finishLive(
+        applyAngularStageGateDecision(model, "G07", "APPROVE"),
+      );
+      model = finishLive(
+        applyAngularStageGateDecision(model, "G12", "APPROVE"),
+      );
+    }
+
     model = finishLive(
       applyAngularStageGateDecision(model, "G07", "APPROVE"),
     );
