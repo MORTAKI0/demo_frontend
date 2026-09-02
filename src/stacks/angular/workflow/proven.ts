@@ -361,6 +361,65 @@ function reviewingRepairAttempts20To21(
   );
 }
 
+function sourceGroundedRepairAttempts15To16(
+  run: AngularRunModel,
+): AngularRepairAttempt[] {
+  const stage = run.stageExecution;
+  if (!stage || stage.source !== 15 || stage.target !== 16) return [];
+
+  const checksum = (scope: string) =>
+    stableDisplayChecksum(`${run.id}:${stage.stageId}:${scope}`);
+
+  return [
+    {
+      id: `${stage.stageId}-repair-1`,
+      attempt: 1,
+      status: "READY_FOR_G10",
+      failureCategory: "LEGACY_TSLINT_BUILDER_UNAVAILABLE",
+      failurePhase: "MAIN_REPAIR",
+      failureOwner: "MAIN_REPAIR_LLM",
+      proposalKind: "TOOLING_TRANSITION",
+      operation: "tooling_transition",
+      rationale:
+        "Source-grounded presentation scenario: the Angular 11 CRUD source carries npm run lint -> ng lint, TSLint/Codelyzer, and @angular-devkit/build-angular:tslint. Angular CLI 16.2.16 no longer registers the tslint builder, so the bounded repair migrates lint authority to angular-eslint instead of silently dropping lint validation.",
+      changedFiles: ["package.json", "angular.json", ".eslintrc.json"],
+      diff:
+        '--- package.json\n-   "codelyzer": "^6.0.0",\n-   "tslint": "~6.1.0",\n+   "@angular-eslint/builder": "^16.3.1",\n+   "@angular-eslint/eslint-plugin": "^16.3.1",\n+   "@angular-eslint/eslint-plugin-template": "^16.3.1",\n+   "@angular-eslint/template-parser": "^16.3.1",\n+   "eslint": "^8.0.0",\n\n--- angular.json\n- "builder": "@angular-devkit/build-angular:tslint"\n+ "builder": "@angular-eslint/builder:lint"\n- "tsConfig": ["tsconfig.app.json", "tsconfig.spec.json"]\n+ "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]\n\n+++ .eslintrc.json\n+ { "root": true, "extends": ["plugin:@angular-eslint/recommended"] }',
+      reviewerVerdict: "ACCEPT",
+      causalResult: "PASS",
+      risk: "MEDIUM",
+      proposer: {
+        role: "repair_proposer",
+        task: "repair_diagnosis",
+        status: "SUCCEEDED",
+      },
+      reviewer: {
+        role: "repair_reviewer",
+        task: "repair_review",
+        status: "SUCCEEDED",
+        decision: "ACCEPT",
+      },
+      validationTargets: ["lint", "build", "test"],
+      failureEvidenceChecksum: checksum("repair-1:failure"),
+      proposalChecksum: checksum("repair-1:proposal"),
+      reviewChecksum: checksum("repair-1:review"),
+    },
+  ];
+}
+
+function reviewingRepairAttempts15To16(
+  run: AngularRunModel,
+): AngularRepairAttempt[] {
+  return sourceGroundedRepairAttempts15To16(run).map((attempt) => ({
+    ...attempt,
+    status: "REVIEWING" as const,
+    proposer: undefined,
+    reviewer: undefined,
+    proposalChecksum: undefined,
+    reviewChecksum: undefined,
+  }));
+}
+
 function approveGate(
   stage: AngularStageExecution,
   gateId: AngularStageGateId,
@@ -591,7 +650,9 @@ export function completeAngularApprovedStageExecution(
     throw new Error("G07 must be approved before PROVEN stage execution can complete.");
   }
 
-  const shouldFail = stage.source === 20 && stage.target === 21;
+  const is15To16ToolingRepair = stage.source === 15 && stage.target === 16;
+  const is20To21ReferenceRepair = stage.source === 20 && stage.target === 21;
+  const shouldFail = is15To16ToolingRepair || is20To21ReferenceRepair;
   const validation = shouldFail ? "FAILED" as const : "PASS" as const;
   let executed: AngularStageExecution = {
     ...stage,
@@ -603,18 +664,24 @@ export function completeAngularApprovedStageExecution(
   if (shouldFail) {
     executed = {
       ...executed,
-      repairAttempts: reviewingRepairAttempts20To21({
-        ...run,
-        stageExecution: executed,
-      }),
+      repairAttempts: is15To16ToolingRepair
+        ? reviewingRepairAttempts15To16({
+            ...run,
+            stageExecution: executed,
+          })
+        : reviewingRepairAttempts20To21({
+            ...run,
+            stageExecution: executed,
+          }),
     };
     return {
       ...run,
       state: "RUNNING",
       phase: "REPAIR",
       currentGate: null,
-      currentAction:
-        "Main Repair LLM and Independent Reviewer are preparing the bounded source repair",
+      currentAction: is15To16ToolingRepair
+        ? "Main Repair LLM and Independent Reviewer are preparing the governed lint-tooling transition"
+        : "Main Repair LLM and Independent Reviewer are preparing the bounded source repair",
       liveExecution: createAngularLiveExecution(
         "REPAIR_REVIEW",
         Date.parse(now),
@@ -631,9 +698,12 @@ export function completeAngularApprovedStageExecution(
         {
           id: `${run.id}-${stage.stageId}-validation-failure`,
           category: "FAILURE",
-          title: "Angular 20 → 21 validation failure preserved",
-          summary:
-            "The source-backed reference path retains the missing Jest environment and legacy setup import failures before governed repair.",
+          title: is15To16ToolingRepair
+            ? "Angular 15 → 16 lint-tooling incompatibility preserved"
+            : "Angular 20 → 21 validation failure preserved",
+          summary: is15To16ToolingRepair
+            ? "Source-grounded presentation evidence binds the legacy @angular-devkit/build-angular:tslint target from the Angular 11 CRUD source against Angular CLI 16.2.16, where that builder is no longer registered."
+            : "The source-backed reference path retains the missing Jest environment and legacy setup import failures before governed repair.",
           timestamp: now,
           checksum: stableDisplayChecksum(
             `${run.id}:${stage.stageId}:failure`,
@@ -673,14 +743,20 @@ export function completeAngularRepairReviewExecution(
   now: string,
 ): AngularRunModel {
   const stage = run.stageExecution;
-  if (!stage || stage.source !== 20 || stage.target !== 21) {
-    throw new Error("No source-backed Angular 20 → 21 repair review is active.");
+  const is15To16ToolingRepair =
+    stage?.source === 15 && stage.target === 16;
+  const is20To21ReferenceRepair =
+    stage?.source === 20 && stage.target === 21;
+  if (!stage || (!is15To16ToolingRepair && !is20To21ReferenceRepair)) {
+    throw new Error("No governed Angular repair review is active.");
   }
 
   let reviewed: AngularStageExecution = {
     ...stage,
     status: "ACTION_REQUIRED",
-    repairAttempts: sourceBackedRepairAttempts20To21(run),
+    repairAttempts: is15To16ToolingRepair
+      ? sourceGroundedRepairAttempts15To16(run)
+      : sourceBackedRepairAttempts20To21(run),
   };
   reviewed = unlockGate(reviewed, "G10");
 
@@ -688,8 +764,9 @@ export function completeAngularRepairReviewExecution(
     ...run,
     phase: "REPAIR",
     currentGate: "G10",
-    currentAction:
-      "Review Main Repair LLM proposal, Independent Reviewer verdict, and candidate diff",
+    currentAction: is15To16ToolingRepair
+      ? "Review lint-tooling transition, Independent Reviewer verdict, and candidate diff"
+      : "Review Main Repair LLM proposal, Independent Reviewer verdict, and candidate diff",
     liveExecution: undefined,
     stageExecution: reviewed,
     evidence: [
@@ -697,9 +774,12 @@ export function completeAngularRepairReviewExecution(
       {
         id: `${run.id}-${stage.stageId}-repair-proposal`,
         category: "REPAIR",
-        title: "Main Repair LLM proposal reviewed",
-        summary:
-          "The request-changes child repair targets setup-jest.ts with a preimage-bound replace_text operation; the Independent Reviewer accepted it and G10 now requires human approval before apply.",
+        title: is15To16ToolingRepair
+          ? "Angular 15 → 16 tooling repair reviewed"
+          : "Main Repair LLM proposal reviewed",
+        summary: is15To16ToolingRepair
+          ? "The source-grounded presentation proposal replaces the unavailable TSLint builder with angular-eslint lint authority, preserves lint validation, and requires G10 human approval before package/config mutation."
+          : "The request-changes child repair targets setup-jest.ts with a preimage-bound replace_text operation; the Independent Reviewer accepted it and G10 now requires human approval before apply.",
         timestamp: now,
         checksum: stableDisplayChecksum(
           `${run.id}:${stage.stageId}:repair-proposal`,
