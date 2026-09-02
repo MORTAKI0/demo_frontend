@@ -14,6 +14,7 @@ This file maps presentation behavior to the two audited source snapshots.
 | Presentation behavior | Original source |
 |---|---|
 | architecture / frontend presentation-only | `AGENT.md` |
+| current post-G07 presentation contract | `docs/superpowers/specs/2026-09-01-proven-transformer-runtime-design.md` |
 | modern PROVEN semantics | `backend/app/domain/transformation.py`, `backend/app/orchestration/transformer_graph.py` |
 | proven 11→15 behavior | `ANGULAR_MIGRATION_FACTORY_RUN_4E1DCAD22CFE.md` |
 | G01 | `backend/app/domain/preflight.py`, `backend/app/api/routes/preflights.py` |
@@ -28,7 +29,7 @@ This file maps presentation behavior to the two audited source snapshots.
 | runtime certification | `api/routes/runtime_certification.py`, `stage_runtime.py` |
 | PROVEN execution | `services/proven_stage_execution_service.py` |
 | gate successors | `services/stage_gate_service.py` |
-| clean G12→promotion→seal | `proven_stage_execution_service.py`, `candidate_promotion_service.py`, `stage_gate_service.py`, run evidence |
+| policy-selected post-validation authority | `proven_stage_execution_service.py`, `candidate_promotion_service.py`, `stage_gate_service.py`, persisted run evidence |
 | sealing | `services/stage_sealing_service.py`, `orchestration/transformer_sealing_flow.py` |
 | repair/causal policy | repair services, `domain/repair_lifecycle.py`, proven run evidence |
 | commands/logs | `api/routes/run_commands.py`, command domain/services |
@@ -41,11 +42,12 @@ This file maps presentation behavior to the two audited source snapshots.
 
 ### Angular discrepancy rule
 
-For this snapshot, executable code and proven run evidence override conflicting README gate-order prose:
+For the locked v2.3 snapshot, the approved 2026-09-01 Transformer spec and the exact audited backend/evidence sources override older presentation prose that treated one gate route as universal.
 
-- clean: G12 → promotion → seal;
-- repaired: G10 → revalidate → G11 → G09 → G12 → promotion → seal;
-- G08 is not mandatory modern PROVEN behavior.
+- Gate order is scenario-policy driven; G08 is supported as a real transformation-review boundary.
+- Persisted reference route: G07 → transformation → G08 → final validation → G11 direct seal, with G10 when repair is required.
+- Alternate promotion route: G09/G12 may be selected by the active plan/policy; G12 candidate promotion is not fabricated on the G11 direct-seal route.
+- Historical reference evidence may show its observed governed Angular-update command, but the current PROVEN presentation authority is source baseline → disposable discovery → target authority/materialization → migration-owner ledger → validation → policy-selected post-validation authority → seal.
 
 ## Java
 
@@ -82,7 +84,6 @@ Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indi
 ## Maintenance rule
 
 Any future workflow change in this presentation app must update this matrix in the same commit and cite the original stack source that authorizes the change.
-
 
 ## Angular presentation source application
 
