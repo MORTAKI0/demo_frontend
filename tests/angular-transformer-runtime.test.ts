@@ -169,3 +169,20 @@ test("gate projection follows the selected scenario policy", () => {
     CANDIDATE_PROMOTION_GATE_POLICY.id,
   );
 });
+
+
+test("PRESENTATION_REALISTIC clean direct stage stays within 4–8 minutes", () => {
+  const projection = projectTransformerRuntime(runtime(), {
+    nowMs: startedAtMs,
+    gatePolicy: DIRECT_SEAL_GATE_POLICY,
+  });
+
+  assert.ok(
+    projection.uninterruptedStageDurationMs >= 4 * 60_000,
+    `clean stage must be at least 4 minutes, got ${projection.uninterruptedStageDurationMs}ms`,
+  );
+  assert.ok(
+    projection.uninterruptedStageDurationMs <= 8 * 60_000,
+    `clean stage must be at most 8 minutes, got ${projection.uninterruptedStageDurationMs}ms`,
+  );
+});
