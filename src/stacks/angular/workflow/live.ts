@@ -9,6 +9,7 @@ import {
 } from "./run.ts";
 import {
   completeAngularApprovedStageExecution,
+  completeAngularRepairReviewExecution,
   completeAngularRepairValidationExecution,
 } from "./proven.ts";
 
@@ -43,6 +44,8 @@ export function advanceAngularLiveExecution(
       return completeAngularStagePreparationExecution(run);
     case "STAGE_EXECUTION":
       return completeAngularApprovedStageExecution(run, now);
+    case "REPAIR_REVIEW":
+      return completeAngularRepairReviewExecution(run, now);
     case "REPAIR_VALIDATION":
       return completeAngularRepairValidationExecution(run, now);
     default:
