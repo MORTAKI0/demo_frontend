@@ -8,13 +8,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Migration Factory project rules
 
-- Read `docs/superpowers/specs/2026-08-31-migration-factory-presentation-frontend-design.md` before workflow work.
+- Read `docs/superpowers/specs/2026-08-31-migration-factory-presentation-frontend-design.md` before general workflow work.
+- For post-G07 Angular Transformer work, read `docs/superpowers/specs/2026-09-01-proven-transformer-runtime-design.md`; it is the current implementation contract.
 - Read `docs/architecture/source-reference-matrix.md` before changing stack behavior.
 - Shared UI is presentation-only; never infer next workflow state in shared components.
 - Angular and Java have independent domain models/state engines.
-- Angular modern PROVEN clean completion for the locked snapshot is G12 → promotion → seal.
-- Angular repaired completion is G10 → revalidate → G11 → G09 → G12 → promotion → seal.
-- Do not add mandatory G08 to modern Angular presentation.
+- Angular PROVEN gate order is scenario-policy driven; G08 is a real review boundary when the active scenario/plan requires it.
+- The persisted reference route uses G07 → transformation → G08 → final validation → G11 direct seal, with G10 only when repair is required.
+- G12 candidate promotion belongs only to the policy path that selects candidate promotion; never fabricate promotion on the G11 direct-seal path.
 - Java has exactly five PhaseGate types; there is no assessment_review.
 - Java Stage 4 is terminal-special and has no normal PhaseGate.
 - Never hardcode Angular 18→21 or an always-full Java route.
