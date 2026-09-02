@@ -263,8 +263,15 @@ function sourceBackedRepairAttempts20To21(
       rationale:
         "The validation environment was missing jest-environment-jsdom; the governed manifest intent added it before npm regenerated lock authority and materialized node_modules.",
       changedFiles: ["package.json"],
-      diff:
-        '  "devDependencies": {\n+   "jest-environment-jsdom": "^30.0.0"\n  }',
+      diff: `diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -30,6 +30,7 @@
+   "devDependencies": {
+     "jest": "^30.0.0",
++    "jest-environment-jsdom": "^30.0.0",
+     "jest-preset-angular": "16.1.3"
+   }`,
       reviewerVerdict: "ACCEPT",
       causalResult: "PASS",
       risk: "LOW",
@@ -285,8 +292,15 @@ function sourceBackedRepairAttempts20To21(
       rationale:
         "A dependency-version change to jest-preset-angular ^17.0.0 was proposed for the remaining Jest setup failure, but the Reviewer requested changes because the failure was in source setup code.",
       changedFiles: ["package.json"],
-      diff:
-        '-   "jest-preset-angular": "16.1.3"\n+   "jest-preset-angular": "^17.0.0"',
+      diff: `diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -31,5 +31,5 @@
+     "jest": "^30.0.0",
+     "jest-environment-jsdom": "^30.0.0",
+-    "jest-preset-angular": "16.1.3"
++    "jest-preset-angular": "^17.0.0"
+   }`,
       reviewerVerdict: "REQUEST_CHANGES",
       causalResult: "PASS",
       risk: "MEDIUM",
@@ -319,8 +333,14 @@ function sourceBackedRepairAttempts20To21(
       rationale:
         "Human revision kept the current dependency closure and redirected the repair to the exact legacy Jest setup import identified by the failed test evidence.",
       changedFiles: ["setup-jest.ts"],
-      diff:
-        "- import 'jest-preset-angular/setup-jest';\n+ import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';\n+\n+ setupZoneTestEnv();",
+      diff: `diff --git a/setup-jest.ts b/setup-jest.ts
+--- a/setup-jest.ts
++++ b/setup-jest.ts
+@@ -1 +1,3 @@
+-import 'jest-preset-angular/setup-jest';
++import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
++
++setupZoneTestEnv();`,
       reviewerVerdict: "ACCEPT",
       causalResult: "PASS",
       risk: "LOW",
@@ -383,8 +403,56 @@ function sourceGroundedRepairAttempts15To16(
       rationale:
         "Source-grounded presentation scenario: the Angular 11 CRUD source carries npm run lint -> ng lint, TSLint/Codelyzer, and @angular-devkit/build-angular:tslint. Angular CLI 16.2.16 no longer registers the tslint builder, so the bounded repair migrates lint authority to angular-eslint instead of silently dropping lint validation.",
       changedFiles: ["package.json", "angular.json", ".eslintrc.json"],
-      diff:
-        '--- package.json\n-   "codelyzer": "^6.0.0",\n-   "tslint": "~6.1.0",\n+   "@angular-eslint/builder": "^16.3.1",\n+   "@angular-eslint/eslint-plugin": "^16.3.1",\n+   "@angular-eslint/eslint-plugin-template": "^16.3.1",\n+   "@angular-eslint/template-parser": "^16.3.1",\n+   "eslint": "^8.0.0",\n\n--- angular.json\n- "builder": "@angular-devkit/build-angular:tslint"\n+ "builder": "@angular-eslint/builder:lint"\n- "tsConfig": ["tsconfig.app.json", "tsconfig.spec.json"]\n+ "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]\n\n+++ .eslintrc.json\n+ { "root": true, "extends": ["plugin:@angular-eslint/recommended"] }',
+      diff: `diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -24,9 +24,12 @@
+   "devDependencies": {
+     "@angular-devkit/build-angular": "~16.2.16",
+     "@angular/cli": "~16.2.16",
+-    "codelyzer": "^6.0.0",
+-    "tslint": "~6.1.0",
++    "@angular-eslint/builder": "^16.3.1",
++    "@angular-eslint/eslint-plugin": "^16.3.1",
++    "@angular-eslint/eslint-plugin-template": "^16.3.1",
++    "@angular-eslint/template-parser": "^16.3.1",
++    "eslint": "^8.0.0",
+     "typescript": "~5.1.6"
+   }
+diff --git a/angular.json b/angular.json
+--- a/angular.json
++++ b/angular.json
+@@ -92,15 +92,11 @@
+         },
+         "lint": {
+-          "builder": "@angular-devkit/build-angular:tslint",
++          "builder": "@angular-eslint/builder:lint",
+           "options": {
+-            "tsConfig": [
+-              "tsconfig.app.json",
+-              "tsconfig.spec.json",
+-              "e2e/tsconfig.json"
+-            ],
+-            "exclude": [
+-              "**/node_modules/**"
++            "lintFilePatterns": [
++              "src/**/*.ts",
++              "src/**/*.html"
+             ]
+           }
+         },
+diff --git a/.eslintrc.json b/.eslintrc.json
+new file mode 100644
+--- /dev/null
++++ b/.eslintrc.json
+@@ -0,0 +1,7 @@
++{
++  "root": true,
++  "extends": [
++    "plugin:@angular-eslint/recommended"
++  ]
++}
++`,
       reviewerVerdict: "ACCEPT",
       causalResult: "PASS",
       risk: "MEDIUM",
