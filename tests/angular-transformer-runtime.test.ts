@@ -14,6 +14,10 @@ import {
   DIRECT_SEAL_GATE_POLICY,
   CANDIDATE_PROMOTION_GATE_POLICY,
 } from "../src/stacks/angular/transformer/domain/scenarios.ts";
+import {
+  PRIMARY_TRANSFORMER_PHASE_WEIGHTS,
+  PROVEN_NODE_CATALOGUE,
+} from "../src/stacks/angular/transformer/data/node-catalogue.ts";
 
 const startedAtMs = Date.parse("2026-09-02T00:00:00.000Z");
 
@@ -130,10 +134,25 @@ test("projection is refresh-safe and progress is completed-node weighted", () =>
     totalStages: 10,
   });
 
-  const elapsedPercent = Math.round(
-    (first.effectiveElapsedMs / first.uninterruptedStageDurationMs) * 100,
+  const phaseCounts = new Map<string, number>();
+  for (const node of PROVEN_NODE_CATALOGUE) {
+    phaseCounts.set(node.phaseId, (phaseCounts.get(node.phaseId) ?? 0) + 1);
+  }
+  const expectedNodeWeightedProgress = Math.min(
+    99,
+    Math.round(
+      first.completedNodeIds.reduce((total, nodeId) => {
+        const node = PROVEN_NODE_CATALOGUE.find((entry) => entry.id === nodeId);
+        assert.ok(node);
+        return (
+          total +
+          PRIMARY_TRANSFORMER_PHASE_WEIGHTS[node.phaseId] /
+            (phaseCounts.get(node.phaseId) ?? 1)
+        );
+      }, 0),
+    ),
   );
-  assert.notEqual(first.stageProgressPercent, elapsedPercent);
+  assert.equal(first.stageProgressPercent, expectedNodeWeightedProgress);
 
   for (let index = 1; index < first.events.length; index += 1) {
     assert.ok(first.events[index].sequence > first.events[index - 1].sequence);
