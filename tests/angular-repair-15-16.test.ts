@@ -82,6 +82,12 @@ test("15 to 16 runs a governed lint-tooling Repair LLM review before G10", () =>
     "angular.json",
     ".eslintrc.json",
   ]);
+  assert.match(active?.diff ?? "", /^diff --git a\/package\.json b\/package\.json$/m);
+  assert.match(active?.diff ?? "", /^--- a\/package\.json$/m);
+  assert.match(active?.diff ?? "", /^\+\+\+ b\/package\.json$/m);
+  assert.match(active?.diff ?? "", /^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/m);
+  assert.match(active?.diff ?? "", /^diff --git a\/angular\.json b\/angular\.json$/m);
+  assert.match(active?.diff ?? "", /^diff --git a\/\.eslintrc\.json b\/\.eslintrc\.json$/m);
   assert.match(active?.diff ?? "", /@angular-devkit\/build-angular:tslint/);
   assert.match(active?.diff ?? "", /@angular-eslint\/builder:lint/);
   assert.match(active?.diff ?? "", /codelyzer/);
