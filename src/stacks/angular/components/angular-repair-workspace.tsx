@@ -107,7 +107,7 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
                             ? `${attempt.reviewer.status} · ${attempt.reviewer.decision}`
                             : attempt.reviewer.status
                         }
-                        note="Checks causal fit, policy, risk, and validation targets. The Reviewer cannot apply or replace the candidate. Reviewer acceptance does not approve or apply it; G10 human approval remains required."
+                        note="Checks causal fit, policy, risk, and validation targets. The Reviewer may revise the candidate, but cannot apply it or approve the gate. G10 human approval remains required."
                       />
                     ) : null}
                   </div>

@@ -15,7 +15,8 @@ test("repair workspace exposes governed LLM and human-approval roles", () => {
   assert.match(source, /Parent attempt/);
   assert.match(source, /G10/);
   assert.match(source, /human approval/i);
-  assert.match(source, /reviewer cannot apply/i);
+  assert.match(source, /reviewer may revise the candidate/i);
+  assert.match(source, /cannot apply it or approve the gate/i);
 });
 
 test("repair workspace distinguishes dependency operations from source patches", () => {
