@@ -100,7 +100,12 @@ This repository supplies presentation **application evidence only**. Angular wor
 
 ## Angular repair presentation reference
 
-The presentation does not fabricate a Main Repair LLM failure on Angular 13→14. The source-backed repair showcase is the audited Angular 20→21 reference family from `evidence/TRANSFORMER_E2E_IMPLEMENTATION_HANDOFF.md` at the locked v2.3 source:
+The presentation does not fabricate a Main Repair LLM failure on Angular 13→14. It now has two deliberately different repair evidence classes:
+
+- **Angular 15→16 — source-grounded presentation scenario, not persisted E2E proof.** The locked CRUD source revision carries `npm run lint -> ng lint`, `codelyzer ^6.0.0`, `tslint ~6.1.0`, and an `@angular-devkit/build-angular:tslint` workspace target. Angular CLI `16.2.16`'s `@angular-devkit/build-angular` `builders.json` no longer registers a `tslint` builder. The presentation therefore exercises a governed tooling-transition repair: Repair Proposer → Independent Reviewer → G10 → package/config apply → npm lock regeneration → `npm ci` → lint → build → tests → G11. The replacement builder contract is grounded in `angular-eslint/angular-eslint@v16.3.1`, which exposes `@angular-eslint/builder:lint` and `lintFilePatterns`. This scenario demonstrates the workflow against real source/tooling incompatibility evidence; it does **not** claim that a persisted v2.3 backend run executed Angular 15→16.
+- **Angular 20→21 — persisted E2E reference.** This remains the audited repair family from `evidence/TRANSFORMER_E2E_IMPLEMENTATION_HANDOFF.md` at the locked v2.3 source.
+
+The persisted Angular 20→21 reference retains:
 
 - Angular 19→20 demonstrates the governed dependency-transition family.
 - Angular 20→21 retains the historical transition, `dependency_add` for `jest-environment-jsdom` with `^30.0.0`, the superseded `jest-preset-angular` dependency-change proposal, and the request-changes child lineage.
