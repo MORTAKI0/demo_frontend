@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { AngularMajor } from "../src/stacks/angular/domain/types.ts";
 import {
   applyG01Decision,
   createRunFromApprovedPreflight,
@@ -28,7 +29,7 @@ function finishLive(run: ReturnType<typeof governedRun>) {
   );
 }
 
-function governedRun(sourceMajor: number, targetMajor: number) {
+function governedRun(sourceMajor: AngularMajor, targetMajor: AngularMajor) {
   const preflight = prepareAngularPreflight({
     runName: "Repair reference projection",
     sourcePath: "/workspace/source",
