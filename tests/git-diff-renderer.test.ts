@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseUnifiedDiff } from "../src/components/ui/git-diff.ts";
+import {
+  parseUnifiedDiff,
+  validateUnifiedDiff,
+} from "../src/components/ui/git-diff.ts";
 
 const SAMPLE = [
   "diff --git a/src/app/example.ts b/src/app/example.ts",
@@ -62,4 +65,15 @@ test("unified diff parser tracks old and new line numbers across a hunk", () => 
     { old: context?.oldLine, next: context?.newLine },
     { old: 10, next: 10 },
   );
+});
+
+
+test("unified diff validator rejects hunk range counts that do not match the patch body", () => {
+  assert.deepEqual(validateUnifiedDiff(SAMPLE), []);
+
+  const malformed = SAMPLE.replace(
+    "@@ -10,3 +10,4 @@",
+    "@@ -10,9 +10,9 @@",
+  );
+  assert.equal(validateUnifiedDiff(malformed).length, 1);
 });
