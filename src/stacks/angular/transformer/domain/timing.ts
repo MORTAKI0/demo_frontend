@@ -3,7 +3,7 @@ import type { TransformerTimingProfileId } from "./types.ts";
 
 export const TRANSFORMER_TIMING_ENVELOPES = {
   STAGE_BINDING: { minMs: 10_000, maxMs: 20_000 },
-  CONTROL_PLANE: { minMs: 4_000, maxMs: 12_000 },
+  CONTROL_PLANE: { minMs: 250, maxMs: 1_000 },
   SOURCE_INSTALL: { minMs: 35_000, maxMs: 60_000 },
   SOURCE_PROOF: { minMs: 12_000, maxMs: 25_000 },
   SOURCE_BUILD: { minMs: 25_000, maxMs: 45_000 },
