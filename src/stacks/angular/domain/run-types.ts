@@ -251,11 +251,13 @@ export interface AngularRepairAttempt {
     | "DEPENDENCY_TRANSITION"
     | "DEPENDENCY_ADD"
     | "DEPENDENCY_CHANGE"
+    | "TOOLING_TRANSITION"
     | "SOURCE_PATCH";
   operation?:
     | "dependency_transition"
     | "dependency_add"
     | "dependency_change"
+    | "tooling_transition"
     | "replace_text";
   parentAttemptId?: string;
   rationale: string;
