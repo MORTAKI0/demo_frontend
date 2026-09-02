@@ -15,6 +15,48 @@ const CURRENT_POM_VERSIONS: Record<string, string> = {
   "com.acme:legacy-broken-lib": "1.4.0",
 };
 
+type PomProjection = {
+  lines: string[];
+  dependencyStartLines: Map<string, number>;
+  closingDependenciesLine: number;
+};
+
+function pomDependencyLines(
+  groupId: string,
+  artifactId: string,
+  version: string,
+): string[] {
+  return [
+    "    <dependency>",
+    "      <groupId>" + groupId + "</groupId>",
+    "      <artifactId>" + artifactId + "</artifactId>",
+    "      <version>" + version + "</version>",
+    "    </dependency>",
+  ];
+}
+
+function canonicalPomProjection(): PomProjection {
+  const lines = ["<project>", "  <dependencies>"];
+  const dependencyStartLines = new Map<string, number>();
+
+  for (const [coordinate, version] of Object.entries(CURRENT_POM_VERSIONS)) {
+    const separator = coordinate.indexOf(":");
+    if (separator < 1 || separator === coordinate.length - 1) {
+      throw new Error("Invalid canonical POM dependency coordinate: " + coordinate);
+    }
+
+    const groupId = coordinate.slice(0, separator);
+    const artifactId = coordinate.slice(separator + 1);
+    dependencyStartLines.set(coordinate, lines.length + 1);
+    lines.push(...pomDependencyLines(groupId, artifactId, version));
+  }
+
+  const closingDependenciesLine = lines.length + 1;
+  lines.push("  </dependencies>", "</project>");
+
+  return { lines, dependencyStartLines, closingDependenciesLine };
+}
+
 function dependencyKey(row: {
   groupId: string;
   artifactId: string;
@@ -131,20 +173,80 @@ export function compareJavaTargetVersions(
 export function renderJavaPomVersionDiff(
   changes: JavaPomVersionChange[],
 ): string {
-  if (changes.length === 0) {
-    return "# No POM version changes required";
+  if (changes.length === 0) return "";
+
+  const projection = canonicalPomProjection();
+  const knownChanges: Array<{
+    change: JavaPomVersionChange;
+    startLine: number;
+  }> = [];
+  const unpinnedChanges: JavaPomVersionChange[] = [];
+
+  for (const change of changes) {
+    const key = dependencyKey(change);
+    const startLine = projection.dependencyStartLines.get(key);
+    if (startLine === undefined) {
+      unpinnedChanges.push(change);
+    } else {
+      knownChanges.push({ change, startLine });
+    }
   }
 
-  return changes
-    .map(
-      (change) =>
-        [
-          "@@ " + change.groupId + ":" + change.artifactId + " @@",
-          "- <version>" + change.currentVersion + "</version>",
-          "+ <version>" + change.targetVersion + "</version>",
-        ].join("\n"),
-    )
-    .join("\n\n");
+  knownChanges.sort((left, right) => left.startLine - right.startLine);
+
+  const hunks = knownChanges.map(({ change, startLine }) => {
+    const oldLines = pomDependencyLines(
+      change.groupId,
+      change.artifactId,
+      change.currentVersion,
+    );
+    const newLines = pomDependencyLines(
+      change.groupId,
+      change.artifactId,
+      change.targetVersion,
+    );
+
+    return [
+      "@@ -" + startLine + ",5 +" + startLine + ",5 @@",
+      " " + oldLines[0],
+      " " + oldLines[1],
+      " " + oldLines[2],
+      "-" + oldLines[3],
+      "+" + newLines[3],
+      " " + oldLines[4],
+    ].join("\n");
+  });
+
+  if (unpinnedChanges.length > 0) {
+    const additions = unpinnedChanges.flatMap((change) =>
+      pomDependencyLines(
+        change.groupId,
+        change.artifactId,
+        change.targetVersion,
+      ).map((line) => "+" + line),
+    );
+    const newCount = additions.length + 1;
+    hunks.push(
+      [
+        "@@ -" +
+          projection.closingDependenciesLine +
+          ",1 +" +
+          projection.closingDependenciesLine +
+          "," +
+          newCount +
+          " @@",
+        ...additions,
+        "   </dependencies>",
+      ].join("\n"),
+    );
+  }
+
+  return [
+    "diff --git a/pom.xml b/pom.xml",
+    "--- a/pom.xml",
+    "+++ b/pom.xml",
+    ...hunks,
+  ].join("\n");
 }
 
 function assertTerminalStage4(job: JavaJobModel): void {
@@ -223,10 +325,14 @@ function createTargetVersionRepair(
     status: "READY_FOR_APPLY",
     diagnosis:
       "Target dependency validation found com.acme:legacy-broken-lib 2.x incompatible with the accepted terminal Spring Boot 4 profile.",
-    diff:
-      "@@ com.acme:legacy-broken-lib @@\n" +
-      "- <version>2.0.0</version>\n" +
-      "+ <version>1.9.9</version>",
+    diff: renderJavaPomVersionDiff([
+      {
+        groupId: "com.acme",
+        artifactId: "legacy-broken-lib",
+        currentVersion: "2.0.0",
+        targetVersion: "1.9.9",
+      },
+    ]),
     checksum: stableDisplayChecksum(
       job.id + ":amf252:" + attempt + ":legacy-broken-lib:1.9.9",
     ),

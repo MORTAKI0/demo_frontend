@@ -17,6 +17,7 @@ import {
   renderJavaPomVersionDiff,
 } from "../src/stacks/java/workflow/terminal.ts";
 import type { JavaJobModel } from "../src/stacks/java/domain/run-types.ts";
+import { validateUnifiedDiff } from "../src/components/ui/git-diff.ts";
 
 const GREEN_CSV = [
   "groupId,artifactId,targetVersion",
@@ -112,6 +113,45 @@ test("POM comparison emits only changed dependency versions", () => {
   assert.match(renderJavaPomVersionDiff(changes), /6\.0\.0/);
 });
 
+test("POM comparison emits one valid unified pom.xml patch for multiple changes", () => {
+  const changes = compareJavaTargetVersions(
+    parseJavaTargetVersionsCsv(
+      [
+        "groupId,artifactId,targetVersion",
+        "org.junit.jupiter,junit-jupiter,6.0.0",
+        "org.mockito,mockito-core,5.20.0",
+      ].join("\n"),
+    ),
+  );
+  const diff = renderJavaPomVersionDiff(changes);
+
+  assert.equal(diff.startsWith("diff --git a/pom.xml b/pom.xml"), true);
+  assert.match(diff, /^--- a\/pom\.xml$/m);
+  assert.match(diff, /^\+\+\+ b\/pom\.xml$/m);
+  assert.equal((diff.match(/^@@ /gm) ?? []).length, 2);
+  assert.match(diff, /-      <version>5\.12\.2<\/version>/);
+  assert.match(diff, /\+      <version>6\.0\.0<\/version>/);
+  assert.match(diff, /-      <version>5\.18\.0<\/version>/);
+  assert.match(diff, /\+      <version>5\.20\.0<\/version>/);
+  assert.deepEqual(validateUnifiedDiff(diff), []);
+});
+
+test("POM comparison returns an empty state when no versions change", () => {
+  assert.equal(
+    renderJavaPomVersionDiff(
+      compareJavaTargetVersions(
+        parseJavaTargetVersionsCsv(
+          [
+            "groupId,artifactId,targetVersion",
+            "org.junit.jupiter,junit-jupiter,5.12.2",
+          ].join("\n"),
+        ),
+      ),
+    ),
+    "",
+  );
+});
+
 test("terminal target-version validation failure enters AMF-252 repair without a Stage-4 PhaseGate", () => {
   let model = terminalJob();
   const gateCount = model.phaseGates.length;
@@ -128,6 +168,17 @@ test("terminal target-version validation failure enters AMF-252 repair without a
     model.terminalStage4.targetVersions.repairAttempts[0]?.status,
     "READY_FOR_APPLY",
   );
+
+  const repairDiff = model.terminalStage4.targetVersions.repairAttempts[0]?.diff;
+  assert.ok(repairDiff);
+  assert.equal(repairDiff.startsWith("diff --git a/pom.xml b/pom.xml"), true);
+  assert.match(repairDiff, /^--- a\/pom\.xml$/m);
+  assert.match(repairDiff, /^\+\+\+ b\/pom\.xml$/m);
+  assert.match(repairDiff, /^@@ -\d+,\d+ \+\d+,\d+ @@/m);
+  assert.match(repairDiff, /<artifactId>legacy-broken-lib<\/artifactId>/);
+  assert.match(repairDiff, /-      <version>2\.0\.0<\/version>/);
+  assert.match(repairDiff, /\+      <version>1\.9\.9<\/version>/);
+  assert.deepEqual(validateUnifiedDiff(repairDiff), []);
 });
 
 test("AMF-252 terminal repair validates without creating repair_review", () => {
