@@ -406,7 +406,7 @@ function sourceGroundedRepairAttempts15To16(
       diff: `diff --git a/package.json b/package.json
 --- a/package.json
 +++ b/package.json
-@@ -24,9 +24,12 @@
+@@ -24,7 +24,10 @@
    "devDependencies": {
      "@angular-devkit/build-angular": "~16.2.16",
      "@angular/cli": "~16.2.16",
@@ -422,7 +422,7 @@ function sourceGroundedRepairAttempts15To16(
 diff --git a/angular.json b/angular.json
 --- a/angular.json
 +++ b/angular.json
-@@ -92,15 +92,11 @@
+@@ -92,14 +92,10 @@
          },
          "lint": {
 -          "builder": "@angular-devkit/build-angular:tslint",
