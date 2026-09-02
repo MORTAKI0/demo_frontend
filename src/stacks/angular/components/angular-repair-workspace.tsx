@@ -24,7 +24,7 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
       <PanelHeader
         eyebrow="Governed repair"
         title={`Repair history · Angular ${stage.source} → ${stage.target}`}
-        description="Failure evidence is frozen before ownership. The Main Repair LLM may author a bounded candidate only on the governed repair route; the Independent Reviewer critiques it, and G10 human approval is required before the backend can apply the exact persisted operation."
+        description="Migration validation detected a tooling compatibility failure. The Main Repair LLM generated a bounded candidate from frozen failure evidence. The Independent Reviewer reviewed the candidate; human approval is required before application."
       />
 
       <div className="mt-5 space-y-3">
@@ -107,7 +107,7 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
                             ? `${attempt.reviewer.status} · ${attempt.reviewer.decision}`
                             : attempt.reviewer.status
                         }
-                        note="Checks causal fit, policy, risk, and validation targets. The Reviewer cannot apply or replace the candidate."
+                        note="Checks causal fit, policy, risk, and validation targets. The Reviewer cannot apply or replace the candidate. Reviewer acceptance does not approve or apply it; G10 human approval remains required."
                       />
                     ) : null}
                   </div>
@@ -118,7 +118,9 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
                         {sourcePatch
-                          ? "Candidate diff"
+                          ? attempt.reviewerVerdict === "ACCEPT"
+                            ? "Reviewed diff"
+                            : "Candidate diff"
                           : toolingTransition
                             ? "Governed tooling transition"
                             : governedOperation

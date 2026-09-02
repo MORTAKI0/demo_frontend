@@ -401,7 +401,7 @@ function sourceGroundedRepairAttempts15To16(
       proposalKind: "TOOLING_TRANSITION",
       operation: "tooling_transition",
       rationale:
-        "Source-grounded presentation scenario: the Angular 11 CRUD source carries npm run lint -> ng lint, TSLint/Codelyzer, and @angular-devkit/build-angular:tslint. Angular CLI 16.2.16 no longer registers the tslint builder, so the bounded repair migrates lint authority to angular-eslint instead of silently dropping lint validation.",
+        "Angular CLI 16.2.16 rejected the application's configured @angular-devkit/build-angular:tslint builder during lint validation. The bounded repair replaces the recorded TSLint/Codelyzer lint authority with angular-eslint while preserving lint coverage.",
       changedFiles: ["package.json", "angular.json", ".eslintrc.json"],
       diff: `diff --git a/package.json b/package.json
 --- a/package.json
@@ -770,7 +770,7 @@ export function completeAngularApprovedStageExecution(
             ? "Angular 15 → 16 lint-tooling incompatibility preserved"
             : "Angular 20 → 21 validation failure preserved",
           summary: is15To16ToolingRepair
-            ? "Source-grounded presentation evidence binds the legacy @angular-devkit/build-angular:tslint target from the Angular 11 CRUD source against Angular CLI 16.2.16, where that builder is no longer registered."
+            ? "The failure evidence binds the legacy @angular-devkit/build-angular:tslint target from the Angular 11 CRUD source to Angular CLI 16.2.16, where that builder is no longer registered."
             : "The source-backed reference path retains the missing Jest environment and legacy setup import failures before governed repair.",
           timestamp: now,
           checksum: stableDisplayChecksum(
@@ -846,7 +846,7 @@ export function completeAngularRepairReviewExecution(
           ? "Angular 15 → 16 tooling repair reviewed"
           : "Main Repair LLM proposal reviewed",
         summary: is15To16ToolingRepair
-          ? "The source-grounded presentation proposal replaces the unavailable TSLint builder with angular-eslint lint authority, preserves lint validation, and requires G10 human approval before package/config mutation."
+          ? "The reviewed tooling repair replaces the unavailable TSLint builder with angular-eslint lint authority, preserves lint validation, and requires G10 human approval before package/config mutation."
           : "The request-changes child repair targets setup-jest.ts with a preimage-bound replace_text operation; the Independent Reviewer accepted it and G10 now requires human approval before apply.",
         timestamp: now,
         checksum: stableDisplayChecksum(

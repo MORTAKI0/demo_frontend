@@ -130,3 +130,19 @@ test("15 to 16 G10 approval applies tooling transition then validates lint build
   assert.equal(run.stageExecution?.repairAttempts.at(-1)?.status, "VALIDATED");
   assert.equal(run.stageExecution?.validation, "PASS");
 });
+
+test("15 to 16 repair evidence uses report-ready wording", () => {
+  let run = repairRun15To16();
+  run = finishLive(applyAngularStageGateDecision(run, "G07", "APPROVE"));
+  run = finishLive(run);
+
+  const active = run.stageExecution?.repairAttempts.at(-1);
+  const evidenceText = run.evidence
+    .map((evidence) => `${evidence.title}\n${evidence.summary}`)
+    .join("\n");
+
+  assert.doesNotMatch(active?.rationale ?? "", /presentation scenario/i);
+  assert.doesNotMatch(evidenceText, /presentation (scenario|evidence|proposal)/i);
+  assert.match(active?.rationale ?? "", /Angular CLI 16\.2\.16/);
+  assert.match(evidenceText, /TSLint builder/i);
+});

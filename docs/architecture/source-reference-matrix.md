@@ -91,7 +91,7 @@ Any future workflow change in this presentation app must update this matrix in t
 
 ## Angular presentation source application
 
-The primary Angular presentation scenario is grounded in the real demo application:
+The primary Angular migration case is grounded in the real application source:
 
 - Repository: `cornflourblue/angular-11-crud-example`
 - Branch: `master`
@@ -106,7 +106,7 @@ This repository supplies presentation **application evidence only**. Angular wor
 
 The presentation does not fabricate a Main Repair LLM failure on Angular 13→14. It now has two deliberately different repair evidence classes:
 
-- **Angular 15→16 — source-grounded presentation scenario, not persisted E2E proof.** The locked CRUD source revision carries `npm run lint -> ng lint`, `codelyzer ^6.0.0`, `tslint ~6.1.0`, and an `@angular-devkit/build-angular:tslint` workspace target. Angular CLI `16.2.16`'s `@angular-devkit/build-angular` `builders.json` no longer registers a `tslint` builder. The presentation therefore exercises a governed tooling-transition repair: Repair Proposer → Independent Reviewer → G10 → package/config apply → npm lock regeneration → `npm ci` → lint → build → tests → G11. The replacement builder contract is grounded in `angular-eslint/angular-eslint@v16.3.1`, which exposes `@angular-eslint/builder:lint` and `lintFilePatterns`. This scenario demonstrates the workflow against real source/tooling incompatibility evidence; it does **not** claim that a persisted v2.3 backend run executed Angular 15→16.
+- **Angular 15→16 — source-grounded tooling compatibility case, not persisted E2E proof.** The locked CRUD source revision carries `npm run lint -> ng lint`, `codelyzer ^6.0.0`, `tslint ~6.1.0`, and an `@angular-devkit/build-angular:tslint` workspace target. Angular CLI `16.2.16`'s `@angular-devkit/build-angular` `builders.json` no longer registers a `tslint` builder. The governed tooling-transition repair is: Repair Proposer → Independent Reviewer → G10 → package/config apply → npm lock regeneration → `npm ci` → lint → build → tests → G11. The replacement builder contract is grounded in `angular-eslint/angular-eslint@v16.3.1`, which exposes `@angular-eslint/builder:lint` and `lintFilePatterns`. This case demonstrates the workflow against real source/tooling incompatibility evidence; it does **not** claim that a persisted v2.3 backend run executed Angular 15→16.
 - **Angular 20→21 — persisted E2E reference.** This remains the audited repair family from `evidence/TRANSFORMER_E2E_IMPLEMENTATION_HANDOFF.md` at the locked v2.3 source.
 
 The persisted Angular 20→21 reference retains:

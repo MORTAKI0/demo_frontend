@@ -30,7 +30,7 @@ export function AngularStageDecisionPanel({
         action={<StatusBadge label={gate.status} />}
       />
       <p className="mt-4 truncate rounded-md bg-[var(--mf-surface-subtle)] px-3 py-2 font-mono text-[10px] text-[var(--mf-text-soft)]">
-        {gate.checksum}
+        {formatChecksum(gate.checksum)}
       </p>
       <textarea
         className={`${textareaClassName} mt-4`}
@@ -51,4 +51,10 @@ export function AngularStageDecisionPanel({
       </div>
     </Panel>
   );
+}
+
+function formatChecksum(checksum: string): string {
+  return checksum.length > 24
+    ? `${checksum.slice(0, 12)}…${checksum.slice(-8)}`
+    : checksum;
 }

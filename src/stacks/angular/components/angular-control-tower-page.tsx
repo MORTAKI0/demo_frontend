@@ -173,7 +173,6 @@ export function AngularControlTowerPage() {
         actions={
           <div className="flex items-center gap-2">
             <WorkspaceResetButton onReset={resetAngularState} />
-            <span className="hidden font-mono text-[11px] text-[var(--mf-text-soft)] md:inline">{run.id}</span>
             <StatusBadge label={run.state} />
           </div>
         }
