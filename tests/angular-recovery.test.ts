@@ -15,6 +15,7 @@ import {
   rollbackAngularToFurthestSealed,
 } from "../src/stacks/angular/workflow/recovery.ts";
 import { answerAngularAssistant } from "../src/stacks/angular/workflow/assistant.ts";
+import { seedAngularRun } from "../src/stacks/angular/scenarios/seeds.ts";
 
 function finishLive(run: ReturnType<typeof governedRun>) {
   assert.ok(run.liveExecution);
@@ -44,14 +45,7 @@ function governedRun() {
 }
 
 function repairRun() {
-  let run = governedRun();
-  for (let index = 0; index < 2; index += 1) {
-    run = finishLive(applyAngularStageGateDecision(run, "G07", "APPROVE"));
-    run = finishLive(applyAngularStageGateDecision(run, "G12", "APPROVE"));
-  }
-  return finishLive(
-    applyAngularStageGateDecision(run, "G07", "APPROVE"),
-  );
+  return seedAngularRun("run-angular-action");
 }
 
 test("baseline command evidence preserves authorization, result, and logs", () => {
@@ -69,43 +63,40 @@ test("baseline command evidence preserves authorization, result, and logs", () =
 test("partial delivery always selects the furthest sealed Angular stage", () => {
   const run = repairRun();
   const sealed = furthestSealedStage(run);
-  assert.equal(sealed?.source, 12);
-  assert.equal(sealed?.target, 13);
+  assert.equal(sealed?.source, 19);
+  assert.equal(sealed?.target, 20);
 
   const delivered = createAngularPartialDelivery(run);
   const artifact = delivered.operations.partialDeliveries.at(-1);
 
   assert.equal(artifact?.stageId, sealed?.id);
-  assert.equal(artifact?.target, 13);
-  assert.match(artifact?.artifactPath ?? "", /angular-13-sealed\.zip$/);
+  assert.equal(artifact?.target, 20);
+  assert.match(artifact?.artifactPath ?? "", /angular-20-sealed\.zip$/);
 });
 
 test("rollback preserves the active failed execution in history and returns to sealed authority", () => {
   const run = repairRun();
   assert.equal(run.currentGate, "G10");
-  assert.equal(run.stageExecution?.source, 13);
+  assert.equal(run.stageExecution?.source, 20);
 
   const rolledBack = rollbackAngularToFurthestSealed(run);
 
   assert.equal(rolledBack.stageExecution, undefined);
-  assert.equal(rolledBack.route[0]?.status, "SEALED");
-  assert.equal(rolledBack.route[1]?.status, "SEALED");
-  assert.equal(rolledBack.route[2]?.status, "PENDING");
-  assert.equal(rolledBack.operations.stageHistory.length, 3);
-  assert.equal(rolledBack.operations.stageHistory[0]?.status, "SEALED");
-  assert.equal(rolledBack.operations.stageHistory[1]?.status, "SEALED");
-  assert.equal(rolledBack.operations.stageHistory[2]?.repairAttempts.length, 2);
-  assert.equal(rolledBack.operations.stageHistory[2]?.source, 13);
-  assert.equal(rolledBack.operations.stageHistory[2]?.target, 14);
-  assert.equal(rolledBack.operations.rollbacks.at(-1)?.toStageId, "angular-12-to-13");
+  assert.ok(rolledBack.route.slice(0, 9).every((stage) => stage.status === "SEALED"));
+  assert.equal(rolledBack.route[9]?.status, "PENDING");
+  assert.equal(rolledBack.operations.stageHistory.length, 10);
+  assert.equal(rolledBack.operations.stageHistory[9]?.repairAttempts.length, 4);
+  assert.equal(rolledBack.operations.stageHistory[9]?.source, 20);
+  assert.equal(rolledBack.operations.stageHistory[9]?.target, 21);
+  assert.equal(rolledBack.operations.rollbacks.at(-1)?.toStageId, "angular-19-to-20");
 });
 
 test("resume from sealed rematerializes the next adjacent stage at certified G07", () => {
   const rolledBack = rollbackAngularToFurthestSealed(repairRun());
   const resumed = resumeAngularFromSealed(rolledBack);
 
-  assert.equal(resumed.stageExecution?.source, 13);
-  assert.equal(resumed.stageExecution?.target, 14);
+  assert.equal(resumed.stageExecution?.source, 20);
+  assert.equal(resumed.stageExecution?.target, 21);
   assert.equal(resumed.stageExecution?.runtime.certification, "CERTIFIED");
   assert.equal(resumed.currentGate, "G07");
 });
@@ -117,6 +108,7 @@ test("assistant status and repair answers are grounded in the current repair sta
 
   assert.match(status, /repair/i);
   assert.match(status, /G10/);
-  assert.match(repair, /REPAIR_CAUSAL_KIND_MISMATCH/);
-  assert.match(repair, /attempt 2/i);
+  assert.match(repair, /Main Repair LLM/i);
+  assert.match(repair, /setup-jest\.ts/i);
+  assert.match(repair, /attempt 4/i);
 });

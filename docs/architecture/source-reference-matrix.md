@@ -14,6 +14,7 @@ This file maps presentation behavior to the two audited source snapshots.
 | Presentation behavior | Original source |
 |---|---|
 | architecture / frontend presentation-only | `AGENT.md` |
+| current post-G07 presentation contract | `docs/superpowers/specs/2026-09-01-proven-transformer-runtime-design.md` |
 | modern PROVEN semantics | `backend/app/domain/transformation.py`, `backend/app/orchestration/transformer_graph.py` |
 | proven 11→15 behavior | `ANGULAR_MIGRATION_FACTORY_RUN_4E1DCAD22CFE.md` |
 | G01 | `backend/app/domain/preflight.py`, `backend/app/api/routes/preflights.py` |
@@ -28,7 +29,7 @@ This file maps presentation behavior to the two audited source snapshots.
 | runtime certification | `api/routes/runtime_certification.py`, `stage_runtime.py` |
 | PROVEN execution | `services/proven_stage_execution_service.py` |
 | gate successors | `services/stage_gate_service.py` |
-| clean G12→promotion→seal | `proven_stage_execution_service.py`, `candidate_promotion_service.py`, `stage_gate_service.py`, run evidence |
+| policy-selected post-validation authority | `proven_stage_execution_service.py`, `candidate_promotion_service.py`, `stage_gate_service.py`, persisted run evidence |
 | sealing | `services/stage_sealing_service.py`, `orchestration/transformer_sealing_flow.py` |
 | repair/causal policy | repair services, `domain/repair_lifecycle.py`, proven run evidence |
 | commands/logs | `api/routes/run_commands.py`, command domain/services |
@@ -41,11 +42,12 @@ This file maps presentation behavior to the two audited source snapshots.
 
 ### Angular discrepancy rule
 
-For this snapshot, executable code and proven run evidence override conflicting README gate-order prose:
+For the locked v2.3 snapshot, the approved 2026-09-01 Transformer spec and the exact audited backend/evidence sources override older presentation prose that treated one gate route as universal.
 
-- clean: G12 → promotion → seal;
-- repaired: G10 → revalidate → G11 → G09 → G12 → promotion → seal;
-- G08 is not mandatory modern PROVEN behavior.
+- Gate order is scenario-policy driven; G08 is supported as a real transformation-review boundary.
+- Persisted reference route: G07 → transformation → G08 → final validation → G11 direct seal, with G10 when repair is required.
+- Alternate promotion route: G09/G12 may be selected by the active plan/policy; G12 candidate promotion is not fabricated on the G11 direct-seal route.
+- Historical reference evidence may show its observed governed Angular-update command, but the current PROVEN presentation authority is source baseline → disposable discovery → target authority/materialization → migration-owner ledger → validation → policy-selected post-validation authority → seal.
 
 ## Java
 
@@ -83,7 +85,6 @@ Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indi
 
 Any future workflow change in this presentation app must update this matrix in the same commit and cite the original stack source that authorizes the change.
 
-
 ## Angular presentation source application
 
 The primary Angular presentation scenario is grounded in the real demo application:
@@ -96,3 +97,14 @@ The primary Angular presentation scenario is grounded in the real demo applicati
 - Preserved behavior: Reactive Forms, five UserService CRUD HTTP operations, interceptor-based local development API, routing, production budgets, Karma/Jasmine configuration, TSLint/Codelyzer, and Protractor E2E intent
 
 This repository supplies presentation **application evidence only**. Angular workflow/governance authority remains `Ali-Hamdaoui/angular-migration:v2.3`.
+
+## Angular repair presentation reference
+
+The presentation does not fabricate a Main Repair LLM failure on Angular 13→14. The source-backed repair showcase is the audited Angular 20→21 reference family from `evidence/TRANSFORMER_E2E_IMPLEMENTATION_HANDOFF.md` at the locked v2.3 source:
+
+- Angular 19→20 demonstrates the governed dependency-transition family.
+- Angular 20→21 retains the historical transition, `dependency_add` for `jest-environment-jsdom` with `^30.0.0`, the superseded `jest-preset-angular` dependency-change proposal, and the request-changes child lineage.
+- The active Main Repair LLM demonstration is the final source repair against `setup-jest.ts`: Repair Proposer authors the bounded `replace_text` candidate, Independent Reviewer accepts it, G10 requires human approval, then deterministic apply/post-state verification/affected validation/full validation continue.
+- The displayed source patch replaces the legacy `jest-preset-angular/setup-jest` import with `setupZoneTestEnv` from `jest-preset-angular/setup-env/zone`.
+- Dependency/lock/runtime/platform failures remain with their deterministic owners; they are not relabeled as Main Repair LLM work merely to create a presentation moment.
+

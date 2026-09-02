@@ -65,6 +65,7 @@ export type AngularLiveExecutionKind =
   | "PLANNING"
   | "STAGE_PREPARATION"
   | "STAGE_EXECUTION"
+  | "REPAIR_REVIEW"
   | "REPAIR_VALIDATION";
 
 export type AngularLiveExecution = LiveExecution<AngularLiveExecutionKind>;
@@ -223,23 +224,52 @@ export interface AngularProvenGroup {
   steps: AngularProvenTechnicalStep[];
 }
 
+export interface AngularRepairLlmActivity {
+  role: "repair_proposer" | "repair_reviewer";
+  task: "repair_diagnosis" | "repair_review";
+  status: "SUCCEEDED";
+  decision?: "ACCEPT" | "REQUEST_CHANGES" | "REJECT";
+}
+
 export interface AngularRepairAttempt {
   id: string;
   attempt: number;
   status:
     | "REJECTED_BY_CAUSAL_POLICY"
     | "REVIEWER_REQUESTED_CHANGES"
+    | "MIGRATION_RETRIED"
+    | "SUPERSEDED"
+    | "REVIEWING"
     | "READY_FOR_G10"
     | "APPLIED"
     | "VALIDATED";
   failureCategory: string;
-  proposalKind: "DEPENDENCY_MUTATION" | "SOURCE_PATCH";
+  failurePhase?: "DEPENDENCY" | "MAIN_REPAIR";
+  failureOwner?: "COMPATIBILITY_PLANNER" | "MAIN_REPAIR_LLM";
+  proposalKind:
+    | "DEPENDENCY_MUTATION"
+    | "DEPENDENCY_TRANSITION"
+    | "DEPENDENCY_ADD"
+    | "DEPENDENCY_CHANGE"
+    | "SOURCE_PATCH";
+  operation?:
+    | "dependency_transition"
+    | "dependency_add"
+    | "dependency_change"
+    | "replace_text";
+  parentAttemptId?: string;
   rationale: string;
   changedFiles: string[];
   diff: string;
   reviewerVerdict: "NOT_REVIEWED" | "REQUEST_CHANGES" | "ACCEPT";
   causalResult: "PASS" | "REPAIR_CAUSAL_KIND_MISMATCH";
   risk: "LOW" | "MEDIUM" | "HIGH";
+  proposer?: AngularRepairLlmActivity;
+  reviewer?: AngularRepairLlmActivity;
+  validationTargets?: string[];
+  failureEvidenceChecksum?: string;
+  proposalChecksum?: string;
+  reviewChecksum?: string;
 }
 
 export interface AngularStageExecution {

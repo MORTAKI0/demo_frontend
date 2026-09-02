@@ -37,21 +37,44 @@ export function answerAngularAssistant(
     if (attempts.length === 0) {
       return "No governed repair attempt is active for the current stage.";
     }
-    const rejected = attempts.find((attempt) => attempt.causalResult === "REPAIR_CAUSAL_KIND_MISMATCH");
-    const valid = attempts.find((attempt) => attempt.causalResult === "PASS");
+
+    const active =
+      [...attempts]
+        .reverse()
+        .find((attempt) =>
+          ["READY_FOR_G10", "APPLIED", "VALIDATED"].includes(attempt.status),
+        ) ?? attempts.at(-1);
+
     const pieces = [
-      `${attempts.length} repair proposals are recorded for ${currentStageLabel(run)}.`,
+      `${attempts.length} repair attempts are recorded for ${currentStageLabel(run)}.`,
     ];
-    if (rejected) {
+
+    const requestChangesParent = attempts.find(
+      (attempt) => attempt.reviewerVerdict === "REQUEST_CHANGES",
+    );
+    if (requestChangesParent) {
       pieces.push(
-        "The first unrelated dependency mutation was rejected by causal policy with REPAIR_CAUSAL_KIND_MISMATCH.",
+        `Attempt ${requestChangesParent.attempt} was superseded after the Independent Reviewer requested changes.`,
       );
     }
-    if (valid) {
+
+    if (active?.failureOwner === "MAIN_REPAIR_LLM") {
+      const target = active.changedFiles.join(", ") || "the bound source target";
       pieces.push(
-        `Attempt ${valid.attempt} is causally valid, reviewer verdict ${valid.reviewerVerdict.toLowerCase()}, and is governed by ${run.currentGate ?? "the next review gate"}.`,
+        `Attempt ${active.attempt} is the active Main Repair LLM candidate targeting ${target}.`,
+      );
+      pieces.push(
+        `The Repair Proposer authored the bounded ${active.operation ?? "repair"} candidate and the Independent Reviewer returned ${active.reviewerVerdict.toLowerCase()}.`,
+      );
+      pieces.push(
+        `${run.currentGate ?? "The next governed gate"} must be approved by a human before deterministic apply and validation.`,
+      );
+    } else if (active) {
+      pieces.push(
+        `Attempt ${active.attempt} is owned by ${(active.failureOwner ?? "the deterministic repair owner").replaceAll("_", " ").toLowerCase()} and is governed by ${run.currentGate ?? "the next review gate"}.`,
       );
     }
+
     return pieces.join(" ");
   }
 

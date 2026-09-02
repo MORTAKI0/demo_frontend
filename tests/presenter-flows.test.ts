@@ -10,12 +10,10 @@ test("Angular action scenario reseeds deterministically", () => {
 
   assert.deepEqual(second, first);
   assert.equal(first.currentGate, "G10");
-  assert.equal(first.stageExecution?.source, 13);
-  assert.equal(first.stageExecution?.target, 14);
-  assert.equal(
-    first.stageExecution?.repairAttempts[0]?.causalResult,
-    "REPAIR_CAUSAL_KIND_MISMATCH",
-  );
+  assert.equal(first.stageExecution?.source, 20);
+  assert.equal(first.stageExecution?.target, 21);
+  assert.equal(first.stageExecution?.repairAttempts.length, 4);
+  assert.equal(first.stageExecution?.repairAttempts.at(-1)?.proposalKind, "SOURCE_PATCH");
 });
 
 test("Java terminal report scenario reseeds deterministically", () => {

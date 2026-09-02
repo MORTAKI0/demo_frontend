@@ -220,39 +220,145 @@ export function getAllowedStageDecisions(
   return ["APPROVE", "REJECT"];
 }
 
-function repairAttempts(run: AngularRunModel): AngularRepairAttempt[] {
+function sourceBackedRepairAttempts20To21(
+  run: AngularRunModel,
+): AngularRepairAttempt[] {
   const stage = run.stageExecution;
-  if (!stage) return [];
-  const failureCategory = "TEST_OR_BUILD_REGRESSION";
+  if (!stage || stage.source !== 20 || stage.target !== 21) return [];
+
+  const attemptId = (attempt: number) => `${stage.stageId}-repair-${attempt}`;
+  const checksum = (scope: string) =>
+    stableDisplayChecksum(`${run.id}:${stage.stageId}:${scope}`);
+
   return [
     {
-      id: `${stage.stageId}-repair-1`,
+      id: attemptId(1),
       attempt: 1,
-      status: "REJECTED_BY_CAUSAL_POLICY",
-      failureCategory,
-      proposalKind: "DEPENDENCY_MUTATION",
-      rationale: "First proposal attempted to mutate an unrelated dependency after a test/build regression.",
-      changedFiles: ["package.json"],
-      diff: '- "jest-preset-angular": "12.2.6"\n+ "jest-preset-angular": "16.1.3"',
-      reviewerVerdict: "NOT_REVIEWED",
-      causalResult: "REPAIR_CAUSAL_KIND_MISMATCH",
-      risk: "HIGH",
-    },
-    {
-      id: `${stage.stageId}-repair-2`,
-      attempt: 2,
-      status: "READY_FOR_G10",
-      failureCategory,
-      proposalKind: "SOURCE_PATCH",
-      rationale: "Patch the failing test compatibility surface directly and re-run the full validation generation.",
-      changedFiles: ["src/app/order.service.spec.ts"],
+      status: "MIGRATION_RETRIED",
+      failureCategory: "PEER_DEPENDENCY_CONFLICT",
+      failurePhase: "DEPENDENCY",
+      failureOwner: "COMPATIBILITY_PLANNER",
+      proposalKind: "DEPENDENCY_TRANSITION",
+      operation: "dependency_transition",
+      rationale:
+        "Angular 21 peer resolution required a governed detach/update/reattach dependency transition before migration retry.",
+      changedFiles: ["package.json", "package-lock.json"],
       diff:
-        "- expect(service.legacyValue).toBe(true);\n+ expect(service.currentValue).toBe(true);",
-      reviewerVerdict: "ACCEPT",
+        "Governed dependency transition: detach the blocking compatibility package, retry the Angular transition, normalize lock authority, then reattach the compatible bundle.",
+      reviewerVerdict: "NOT_REVIEWED",
       causalResult: "PASS",
       risk: "MEDIUM",
+      validationTargets: ["dependency_closure", "version_proof"],
+      failureEvidenceChecksum: checksum("repair-1:failure"),
+    },
+    {
+      id: attemptId(2),
+      attempt: 2,
+      status: "SUPERSEDED",
+      failureCategory: "MISSING_TEST_ENVIRONMENT",
+      failurePhase: "DEPENDENCY",
+      failureOwner: "COMPATIBILITY_PLANNER",
+      proposalKind: "DEPENDENCY_ADD",
+      operation: "dependency_add",
+      rationale:
+        "The validation environment was missing jest-environment-jsdom; the governed manifest intent added it before npm regenerated lock authority and materialized node_modules.",
+      changedFiles: ["package.json"],
+      diff:
+        '  "devDependencies": {\n+   "jest-environment-jsdom": "^30.0.0"\n  }',
+      reviewerVerdict: "ACCEPT",
+      causalResult: "PASS",
+      risk: "LOW",
+      validationTargets: ["test", "build"],
+      failureEvidenceChecksum: checksum("repair-2:failure"),
+      proposalChecksum: checksum("repair-2:proposal"),
+      reviewChecksum: checksum("repair-2:review"),
+    },
+    {
+      id: attemptId(3),
+      attempt: 3,
+      status: "SUPERSEDED",
+      failureCategory: "LEGACY_JEST_SETUP_IMPORT",
+      failurePhase: "MAIN_REPAIR",
+      failureOwner: "MAIN_REPAIR_LLM",
+      proposalKind: "DEPENDENCY_CHANGE",
+      operation: "dependency_change",
+      rationale:
+        "A dependency-version change to jest-preset-angular ^17.0.0 was proposed for the remaining Jest setup failure, but the Reviewer requested changes because the failure was in source setup code.",
+      changedFiles: ["package.json"],
+      diff:
+        '-   "jest-preset-angular": "16.1.3"\n+   "jest-preset-angular": "^17.0.0"',
+      reviewerVerdict: "REQUEST_CHANGES",
+      causalResult: "PASS",
+      risk: "MEDIUM",
+      proposer: {
+        role: "repair_proposer",
+        task: "repair_diagnosis",
+        status: "SUCCEEDED",
+      },
+      reviewer: {
+        role: "repair_reviewer",
+        task: "repair_review",
+        status: "SUCCEEDED",
+        decision: "REQUEST_CHANGES",
+      },
+      validationTargets: ["test", "build"],
+      failureEvidenceChecksum: checksum("repair-3:failure"),
+      proposalChecksum: checksum("repair-3:proposal"),
+      reviewChecksum: checksum("repair-3:review"),
+    },
+    {
+      id: attemptId(4),
+      attempt: 4,
+      parentAttemptId: attemptId(3),
+      status: "READY_FOR_G10",
+      failureCategory: "LEGACY_JEST_SETUP_IMPORT",
+      failurePhase: "MAIN_REPAIR",
+      failureOwner: "MAIN_REPAIR_LLM",
+      proposalKind: "SOURCE_PATCH",
+      operation: "replace_text",
+      rationale:
+        "Human revision kept the current dependency closure and redirected the repair to the exact legacy Jest setup import identified by the failed test evidence.",
+      changedFiles: ["setup-jest.ts"],
+      diff:
+        "- import 'jest-preset-angular/setup-jest';\n+ import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';\n+\n+ setupZoneTestEnv();",
+      reviewerVerdict: "ACCEPT",
+      causalResult: "PASS",
+      risk: "LOW",
+      proposer: {
+        role: "repair_proposer",
+        task: "repair_diagnosis",
+        status: "SUCCEEDED",
+      },
+      reviewer: {
+        role: "repair_reviewer",
+        task: "repair_review",
+        status: "SUCCEEDED",
+        decision: "ACCEPT",
+      },
+      validationTargets: ["test", "build"],
+      failureEvidenceChecksum: checksum("repair-4:failure"),
+      proposalChecksum: checksum("repair-4:proposal"),
+      reviewChecksum: checksum("repair-4:review"),
     },
   ];
+}
+
+function reviewingRepairAttempts20To21(
+  run: AngularRunModel,
+): AngularRepairAttempt[] {
+  const attempts = sourceBackedRepairAttempts20To21(run);
+  return attempts.map((attempt, index, all) =>
+    index === all.length - 1
+      ? {
+          ...attempt,
+          status: "REVIEWING" as const,
+          proposer: undefined,
+          reviewer: undefined,
+          proposalChecksum: undefined,
+          reviewChecksum: undefined,
+        }
+      : attempt,
+  );
 }
 
 function approveGate(
@@ -485,7 +591,7 @@ export function completeAngularApprovedStageExecution(
     throw new Error("G07 must be approved before PROVEN stage execution can complete.");
   }
 
-  const shouldFail = stage.source === 13 && stage.target === 14;
+  const shouldFail = stage.source === 20 && stage.target === 21;
   const validation = shouldFail ? "FAILED" as const : "PASS" as const;
   let executed: AngularStageExecution = {
     ...stage,
@@ -495,23 +601,25 @@ export function completeAngularApprovedStageExecution(
   };
 
   if (shouldFail) {
-    executed = unlockGate(
-      {
-        ...executed,
-        repairAttempts: repairAttempts({
-          ...run,
-          stageExecution: executed,
-        }),
-      },
-      "G10",
-    );
+    executed = {
+      ...executed,
+      repairAttempts: reviewingRepairAttempts20To21({
+        ...run,
+        stageExecution: executed,
+      }),
+    };
     return {
       ...run,
       state: "RUNNING",
       phase: "REPAIR",
-      currentGate: "G10",
-      currentAction: "Review causally valid repair proposal",
-      liveExecution: undefined,
+      currentGate: null,
+      currentAction:
+        "Main Repair LLM and Independent Reviewer are preparing the bounded source repair",
+      liveExecution: createAngularLiveExecution(
+        "REPAIR_REVIEW",
+        Date.parse(now),
+        { source: stage.source, target: stage.target },
+      ),
       route: run.route.map((step) =>
         step.id === stage.stageId
           ? { ...step, status: "ACTION_REQUIRED" as const }
@@ -523,23 +631,12 @@ export function completeAngularApprovedStageExecution(
         {
           id: `${run.id}-${stage.stageId}-validation-failure`,
           category: "FAILURE",
-          title: "Validation regression detected",
+          title: "Angular 20 → 21 validation failure preserved",
           summary:
-            "Build/test validation failed after the governed transformation.",
+            "The source-backed reference path retains the missing Jest environment and legacy setup import failures before governed repair.",
           timestamp: now,
           checksum: stableDisplayChecksum(
             `${run.id}:${stage.stageId}:failure`,
-          ),
-        },
-        {
-          id: `${run.id}-${stage.stageId}-causal-reject`,
-          category: "REPAIR",
-          title: "Unrelated dependency mutation rejected",
-          summary:
-            "REPAIR_CAUSAL_KIND_MISMATCH prevented a dependency change that was not authorized by the observed failure.",
-          timestamp: now,
-          checksum: stableDisplayChecksum(
-            `${run.id}:${stage.stageId}:causal-reject`,
           ),
         },
       ],
@@ -565,6 +662,47 @@ export function completeAngularApprovedStageExecution(
         timestamp: now,
         checksum: stableDisplayChecksum(
           `${run.id}:${stage.stageId}:validation-pass`,
+        ),
+      },
+    ],
+  };
+}
+
+export function completeAngularRepairReviewExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  const stage = run.stageExecution;
+  if (!stage || stage.source !== 20 || stage.target !== 21) {
+    throw new Error("No source-backed Angular 20 → 21 repair review is active.");
+  }
+
+  let reviewed: AngularStageExecution = {
+    ...stage,
+    status: "ACTION_REQUIRED",
+    repairAttempts: sourceBackedRepairAttempts20To21(run),
+  };
+  reviewed = unlockGate(reviewed, "G10");
+
+  return {
+    ...run,
+    phase: "REPAIR",
+    currentGate: "G10",
+    currentAction:
+      "Review Main Repair LLM proposal, Independent Reviewer verdict, and candidate diff",
+    liveExecution: undefined,
+    stageExecution: reviewed,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-${stage.stageId}-repair-proposal`,
+        category: "REPAIR",
+        title: "Main Repair LLM proposal reviewed",
+        summary:
+          "The request-changes child repair targets setup-jest.ts with a preimage-bound replace_text operation; the Independent Reviewer accepted it and G10 now requires human approval before apply.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(
+          `${run.id}:${stage.stageId}:repair-proposal`,
         ),
       },
     ],
