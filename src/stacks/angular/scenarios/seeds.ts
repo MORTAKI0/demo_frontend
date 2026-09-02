@@ -82,6 +82,7 @@ export function seedAngularRun(id: string): AngularRunModel {
     model = finishLive(
       applyAngularStageGateDecision(model, "G07", "APPROVE"),
     );
+    model = finishLive(model);
   }
 
   return model;
