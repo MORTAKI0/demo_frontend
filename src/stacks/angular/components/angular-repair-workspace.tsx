@@ -107,7 +107,11 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
 
                 <div className="mt-4 rounded-lg bg-[var(--mf-graphite)] p-4 text-xs text-[#dbe3ee]">
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#8390a4]">
-                    {sourcePatch ? "Candidate diff" : "Governed operation"}
+                    {sourcePatch
+                      ? "Candidate diff"
+                      : dependencyOperation
+                        ? "Governed operation"
+                        : "Bound repair evidence"}
                   </p>
                   <p className="mb-3 font-mono text-[10px] text-[#aeb8c8]">
                     {attempt.changedFiles.join(", ")}
