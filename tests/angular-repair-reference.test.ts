@@ -108,6 +108,10 @@ test("20 to 21 exposes the source-backed final repair proposal before G10 approv
   assert.equal(active.failureOwner, "MAIN_REPAIR_LLM");
   assert.equal(active.operation, "replace_text");
   assert.deepEqual(active.changedFiles, ["setup-jest.ts"]);
+  assert.match(active.diff, /^diff --git a\/setup-jest\.ts b\/setup-jest\.ts$/m);
+  assert.match(active.diff, /^--- a\/setup-jest\.ts$/m);
+  assert.match(active.diff, /^\+\+\+ b\/setup-jest\.ts$/m);
+  assert.match(active.diff, /^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/m);
   assert.match(
     active.diff,
     /jest-preset-angular\/setup-env\/zone/,
