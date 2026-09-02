@@ -139,3 +139,72 @@ export function parseUnifiedDiff(diff: string): ParsedGitDiff {
   flush();
   return { files };
 }
+
+
+export function validateUnifiedDiff(diff: string): string[] {
+  const errors: string[] = [];
+  let current:
+    | {
+        header: string;
+        expectedOld: number;
+        expectedNew: number;
+        actualOld: number;
+        actualNew: number;
+      }
+    | undefined;
+
+  const flush = () => {
+    if (!current) return;
+    if (
+      current.expectedOld !== current.actualOld ||
+      current.expectedNew !== current.actualNew
+    ) {
+      errors.push(
+        `${current.header}: expected -${current.expectedOld}/+${current.expectedNew} lines, got -${current.actualOld}/+${current.actualNew}`,
+      );
+    }
+    current = undefined;
+  };
+
+  for (const rawLine of diff.replaceAll("\r\n", "\n").split("\n")) {
+    if (rawLine.startsWith("diff --git ")) {
+      flush();
+      continue;
+    }
+
+    const hunk = HUNK_HEADER.exec(rawLine);
+    if (hunk) {
+      flush();
+      current = {
+        header: rawLine,
+        expectedOld: hunk[2] === undefined ? 1 : Number(hunk[2]),
+        expectedNew: hunk[4] === undefined ? 1 : Number(hunk[4]),
+        actualOld: 0,
+        actualNew: 0,
+      };
+      continue;
+    }
+
+    if (!current || rawLine.startsWith("\\ No newline at end of file")) {
+      continue;
+    }
+
+    if (rawLine.startsWith("+") && !rawLine.startsWith("+++")) {
+      current.actualNew += 1;
+      continue;
+    }
+
+    if (rawLine.startsWith("-") && !rawLine.startsWith("---")) {
+      current.actualOld += 1;
+      continue;
+    }
+
+    if (rawLine.startsWith(" ")) {
+      current.actualOld += 1;
+      current.actualNew += 1;
+    }
+  }
+
+  flush();
+  return errors;
+}
