@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { textareaClassName } from "@/components/ui/form-field";
+import { GitDiffView } from "@/components/ui/git-diff-view";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { JavaJobModel } from "../domain/run-types";
@@ -197,13 +198,19 @@ export function JavaTargetVersionsWorkspace({
             </table>
           </div>
 
-          <div className="mt-5 rounded-xl bg-[var(--mf-graphite)] p-5 text-[#dbe3ee]">
+          <div className="mt-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-[#8290a5]">
               Reviewed POM diff
             </p>
-            <pre className="mt-3 whitespace-pre-wrap font-mono text-xs leading-5">
-              {target.diff}
-            </pre>
+            {target.diff ? (
+              <div className="mt-3">
+                <GitDiffView diff={target.diff} />
+              </div>
+            ) : (
+              <p className="mt-3 rounded-lg border border-[var(--mf-border)] bg-[var(--mf-surface-subtle)] p-4 text-sm text-[var(--mf-text-muted)]">
+                No POM version changes are required.
+              </p>
+            )}
           </div>
 
           {target.status === "PROPOSED" ? (
@@ -236,9 +243,12 @@ export function JavaTargetVersionsWorkspace({
                 </div>
                 <StatusBadge label={attempt.status} />
               </div>
-              <pre className="mt-4 whitespace-pre-wrap rounded-lg bg-[var(--mf-graphite)] p-4 font-mono text-xs leading-5 text-[#dbe3ee]">
-                {attempt.diff}
-              </pre>
+              <div className="mt-4">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
+                  Reviewed repair diff
+                </p>
+                <GitDiffView diff={attempt.diff} />
+              </div>
             </article>
           ))}
           <Button className="mt-5" onClick={onRepair}>

@@ -81,6 +81,10 @@ For the locked v2.3 snapshot, the approved 2026-09-01 Transformer spec and the e
 
 Route Stage 4 is terminal-special. The PhaseGate schema is limited to stage indices 1–3; do not fabricate Stage-4 analysis/planning/stage-completion gates. Normal repair-attempt accounting is also stage-scoped to stages 1–3; terminal AMF-252 target-version repair remains separate Stage-4 workflow state.
 
+### Java diff presentation
+
+Java Stage 1–3 repair presents the reviewed repair proposal as a unified Git patch. Stage-4 target dependency comparison presents POM changes as one unified `pom.xml` patch. Stage-4 AMF-252 repair uses the same shared diff presentation primitive while remaining terminal state; it does not create `repair_review`. `GitDiffView` is presentation-only, and Java workflow authority remains Java-owned.
+
 ## Maintenance rule
 
 Any future workflow change in this presentation app must update this matrix in the same commit and cite the original stack source that authorizes the change.
@@ -112,4 +116,3 @@ The persisted Angular 20→21 reference retains:
 - The active Main Repair LLM demonstration is the final source repair against `setup-jest.ts`: Repair Proposer authors the bounded `replace_text` candidate, Independent Reviewer accepts it, G10 requires human approval, then deterministic apply/post-state verification/affected validation/full validation continue.
 - The displayed source patch replaces the legacy `jest-preset-angular/setup-jest` import with `setupZoneTestEnv` from `jest-preset-angular/setup-env/zone`.
 - Dependency/lock/runtime/platform failures remain with their deterministic owners; they are not relabeled as Main Repair LLM work merely to create a presentation moment.
-
