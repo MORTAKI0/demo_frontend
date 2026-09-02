@@ -87,7 +87,7 @@ test("persisted G08 approval resumes from the boundary without counting human wa
   });
   assert.equal(immediatelyAfter.activeGate, undefined);
   assert.equal(
-    immediatelyAfter.completedNodeIds.includes("create_validation_generation"),
+    immediatelyAfter.completedNodeIds.includes("validation_install"),
     false,
   );
 
