@@ -5,11 +5,13 @@ import type {
   AngularRunModel,
 } from "../domain/run-types";
 
-const DEPENDENCY_REPAIR_KINDS = new Set([
+const DEPENDENCY_REPAIR_KINDS: ReadonlySet<
+  AngularRepairAttempt["proposalKind"]
+> = new Set([
   "DEPENDENCY_TRANSITION",
   "DEPENDENCY_ADD",
   "DEPENDENCY_CHANGE",
-] satisfies AngularRepairAttempt["proposalKind"][]);
+]);
 
 export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
   const stage = run.stageExecution;
