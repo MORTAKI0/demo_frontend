@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { validateUnifiedDiff } from "../src/components/ui/git-diff.ts";
+
 import {
   applyG01Decision,
   createRunFromApprovedPreflight,
@@ -93,6 +95,7 @@ test("15 to 16 runs a governed lint-tooling Repair LLM review before G10", () =>
   assert.match(active?.diff ?? "", /codelyzer/);
   assert.match(active?.diff ?? "", /lintFilePatterns/);
   assert.deepEqual(active?.validationTargets, ["lint", "build", "test"]);
+  assert.deepEqual(validateUnifiedDiff(active?.diff ?? ""), []);
 });
 
 test("15 to 16 G10 approval applies tooling transition then validates lint build and tests", () => {
