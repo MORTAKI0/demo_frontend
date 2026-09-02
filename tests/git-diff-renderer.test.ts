@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseUnifiedDiff } from "../src/components/ui/git-diff.tsx";
+import { parseUnifiedDiff } from "../src/components/ui/git-diff.ts";
 
 const SAMPLE = [
   "diff --git a/src/app/example.ts b/src/app/example.ts",
