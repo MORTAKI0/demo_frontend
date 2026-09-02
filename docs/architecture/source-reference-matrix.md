@@ -97,3 +97,14 @@ The primary Angular presentation scenario is grounded in the real demo applicati
 - Preserved behavior: Reactive Forms, five UserService CRUD HTTP operations, interceptor-based local development API, routing, production budgets, Karma/Jasmine configuration, TSLint/Codelyzer, and Protractor E2E intent
 
 This repository supplies presentation **application evidence only**. Angular workflow/governance authority remains `Ali-Hamdaoui/angular-migration:v2.3`.
+
+## Angular repair presentation reference
+
+The presentation does not fabricate a Main Repair LLM failure on Angular 13→14. The source-backed repair showcase is the audited Angular 20→21 reference family from `evidence/TRANSFORMER_E2E_IMPLEMENTATION_HANDOFF.md` at the locked v2.3 source:
+
+- Angular 19→20 demonstrates the governed dependency-transition family.
+- Angular 20→21 retains the historical transition, `dependency_add` for `jest-environment-jsdom` with `^30.0.0`, the superseded `jest-preset-angular` dependency-change proposal, and the request-changes child lineage.
+- The active Main Repair LLM demonstration is the final source repair against `setup-jest.ts`: Repair Proposer authors the bounded `replace_text` candidate, Independent Reviewer accepts it, G10 requires human approval, then deterministic apply/post-state verification/affected validation/full validation continue.
+- The displayed source patch replaces the legacy `jest-preset-angular/setup-jest` import with `setupZoneTestEnv` from `jest-preset-angular/setup-env/zone`.
+- Dependency/lock/runtime/platform failures remain with their deterministic owners; they are not relabeled as Main Repair LLM work merely to create a presentation moment.
+
