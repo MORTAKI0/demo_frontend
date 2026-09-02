@@ -1,4 +1,4 @@
-import type { TransformerGateDecision, TransformerGateId } from "./gates";
+import type { TransformerGateDecision, TransformerGateId } from "./gates.ts";
 
 export const TRANSFORMER_TIMING_PROFILE_IDS = [
   "PRESENTATION_REALISTIC",
@@ -55,6 +55,8 @@ export interface TransformerRuntime {
   targetMajor: number;
   timingProfile: TransformerTimingProfileId;
   scenarioId: string;
+  runtimeProfileId: string;
+  gatePolicyId: string;
   status: TransformerRuntimeStatus;
   startedAtMs: number;
   accumulatedElapsedMs: number;
