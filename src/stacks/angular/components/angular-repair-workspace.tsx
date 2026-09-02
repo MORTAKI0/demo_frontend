@@ -29,6 +29,7 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
           const dependencyOperation = DEPENDENCY_REPAIR_KINDS.has(
             attempt.proposalKind,
           );
+          const sourcePatch = attempt.proposalKind === "SOURCE_PATCH";
 
           return (
             <details
@@ -106,7 +107,7 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
 
                 <div className="mt-4 rounded-lg bg-[var(--mf-graphite)] p-4 text-xs text-[#dbe3ee]">
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#8390a4]">
-                    {dependencyOperation ? "Governed operation" : "Candidate diff"}
+                    {sourcePatch ? "Candidate diff" : "Governed operation"}
                   </p>
                   <p className="mb-3 font-mono text-[10px] text-[#aeb8c8]">
                     {attempt.changedFiles.join(", ")}
