@@ -5,12 +5,13 @@ import type {
   AngularRunModel,
 } from "../domain/run-types";
 
-const DEPENDENCY_REPAIR_KINDS: ReadonlySet<
+const GOVERNED_OPERATION_KINDS: ReadonlySet<
   AngularRepairAttempt["proposalKind"]
 > = new Set([
   "DEPENDENCY_TRANSITION",
   "DEPENDENCY_ADD",
   "DEPENDENCY_CHANGE",
+  "TOOLING_TRANSITION",
 ]);
 
 export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
@@ -28,9 +29,11 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
       <div className="mt-5 space-y-3">
         {stage.repairAttempts.map((attempt) => {
           const active = attempt.status === "READY_FOR_G10";
-          const dependencyOperation = DEPENDENCY_REPAIR_KINDS.has(
+          const governedOperation = GOVERNED_OPERATION_KINDS.has(
             attempt.proposalKind,
           );
+          const toolingTransition =
+            attempt.proposalKind === "TOOLING_TRANSITION";
           const sourcePatch = attempt.proposalKind === "SOURCE_PATCH";
 
           return (
@@ -111,9 +114,11 @@ export function AngularRepairWorkspace({ run }: { run: AngularRunModel }) {
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#8390a4]">
                     {sourcePatch
                       ? "Candidate diff"
-                      : dependencyOperation
-                        ? "Governed operation"
-                        : "Bound repair evidence"}
+                      : toolingTransition
+                        ? "Governed tooling transition"
+                        : governedOperation
+                          ? "Governed operation"
+                          : "Bound repair evidence"}
                   </p>
                   <p className="mb-3 font-mono text-[10px] text-[#aeb8c8]">
                     {attempt.changedFiles.join(", ")}
