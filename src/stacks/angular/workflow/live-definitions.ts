@@ -19,7 +19,15 @@ export function createAngularLiveExecution(
   } = {},
 ): AngularLiveExecution {
   const raw = createAngularLiveExecutionRaw(kind, startedAtMs, context);
-  return paceLiveExecution(raw, kind === "PLANNING" ? 45_000 : 30_000);
+  const minimumDurationMs =
+    kind === "PLANNING"
+      ? 45_000
+      : kind === "REPAIR_REVIEW"
+        ? 45_000
+        : kind === "REPAIR_VALIDATION"
+          ? 120_000
+          : 30_000;
+  return paceLiveExecution(raw, minimumDurationMs);
 }
 
 function createAngularLiveExecutionRaw(
@@ -636,6 +644,129 @@ function createAngularLiveExecutionRaw(
     };
   }
 
+  if (kind === "REPAIR_REVIEW") {
+    return {
+      id: id(kind, startedAtMs),
+      kind,
+      status: "RUNNING",
+      startedAtMs,
+      steps: [
+        {
+          id: "repair-failure-freeze",
+          label: "Freeze failure evidence",
+          node: "repair.failure_evidence.freeze",
+          detail:
+            "Bind the failed test execution, normalized diagnostics, workspace fingerprint, and immutable failure checksum before any model sees context.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Failed validation execution bound to one immutable command result.",
+            "Failure evidence fingerprint finalized.",
+            "Relevant source target: setup-jest.ts.",
+            "Historical dependency and request-changes lineage attached.",
+          ],
+        },
+        {
+          id: "repair-owner-route",
+          label: "Bind Main Repair ownership",
+          node: "repair.failure_owner.bind",
+          detail:
+            "Route only the explicit source-repair failure to MAIN_REPAIR; dependency and lock failures remain with deterministic owners.",
+          durationMs: 3000,
+          kind: "SYSTEM",
+          logs: [
+            "failure_phase=MAIN_REPAIR",
+            "failure_owner=MAIN_REPAIR_LLM",
+            "Prior attempt 3 review=request_changes.",
+            "Child repair lineage prepared from current workspace authority.",
+          ],
+        },
+        {
+          id: "repair-context-pack",
+          label: "Build bounded repair context",
+          node: "repair.context_pack.freeze",
+          detail:
+            "Expose only bounded failure evidence and authoritative relevant files; previous proposals remain reference-only.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Bounded context pack created.",
+            "Current workspace preimage is authoritative.",
+            "Arbitrary shell, lockfile edits, path escapes, and policy bypasses are forbidden.",
+          ],
+        },
+        {
+          id: "repair-proposer",
+          label: "Main Repair LLM · Repair Proposer",
+          node: "repair.propose_repair",
+          detail:
+            "Author one minimal typed candidate from the frozen source failure context. The model does not execute or apply it.",
+          durationMs: 12000,
+          kind: "LLM",
+          provider: "azure_openai",
+          role: "repair_proposer",
+          logs: [
+            "role=repair_proposer task=repair_diagnosis",
+            "Current authoritative target: setup-jest.ts",
+            "operation=replace_text",
+            "Legacy setup-jest import identified as the causal source surface.",
+            "Candidate replaces the legacy import with setupZoneTestEnv from jest-preset-angular/setup-env/zone.",
+            "Structured repair proposal received.",
+          ],
+        },
+        {
+          id: "repair-causal-bind",
+          label: "Validate and bind candidate",
+          node: "repair.causal_review",
+          detail:
+            "Schema-check the proposal, bind the exact preimage/postimage and candidate diff, then verify causal fit before review.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Proposal schema validation PASS.",
+            "replace_text preimage is unique in setup-jest.ts.",
+            "Candidate diff checksum finalized.",
+            "Causal review PASS.",
+          ],
+        },
+        {
+          id: "repair-reviewer",
+          label: "Independent Reviewer",
+          node: "repair.review_repair",
+          detail:
+            "Critique causal fit, policy compliance, risk, and required validation targets without changing or applying the candidate.",
+          durationMs: 10000,
+          kind: "REVIEWER",
+          provider: "azure_openai",
+          role: "repair_reviewer",
+          logs: [
+            "role=repair_reviewer task=repair_review",
+            "Verified candidate targets the recorded source failure.",
+            "No command authority or unrelated dependency mutation detected.",
+            "Required validation: affected test, clean install, full build, full tests.",
+            "review decision=accept · risk=LOW",
+          ],
+        },
+        {
+          id: "repair-g10-package",
+          label: "Finalize G10 repair package",
+          node: "repair.create_g10",
+          detail:
+            "Bind failure, proposal, diff, review, workspace fingerprint, parent lineage, and validation targets into the human approval package.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Proposal checksum bound.",
+            "Reviewer checksum bound.",
+            "Parent request-changes lineage bound.",
+            "G10 package finalized.",
+            "No workspace mutation has occurred.",
+          ],
+        },
+      ],
+    };
+  }
+
   if (kind === "REPAIR_VALIDATION") {
     return {
       id: id(kind, startedAtMs),
@@ -644,42 +775,128 @@ function createAngularLiveExecutionRaw(
       startedAtMs,
       steps: [
         {
+          id: "repair-apply-prepare",
+          label: "Verify approved G10 package",
+          node: "repair.apply_prepare",
+          detail:
+            "Recheck proposal/review checksums, expected workspace fingerprint, parent lineage, and exact preimage before mutation.",
+          durationMs: 7000,
+          kind: "SYSTEM",
+          logs: [
+            "G10 decision=APPROVE verified.",
+            "Approved package checksum matches the persisted repair candidate.",
+            "Workspace fingerprint unchanged since review.",
+            "Exact setup-jest.ts preimage verified.",
+          ],
+        },
+        {
           id: "repair-apply",
-          label: "Apply reviewed repair",
-          node: "repair.apply",
-          detail: "Apply the checksum-bound reviewed source patch in the stage workspace.",
-          durationMs: 900,
-          kind: "COMMAND",
-          logs: ["Repair checksum verified.", "Reviewed source patch applied."],
+          label: "Apply typed source repair",
+          node: "repair.apply_repair",
+          detail:
+            "PatchApplyService applies only the approved replace_text operation; no model or UI supplies execution authority.",
+          durationMs: 8000,
+          kind: "SYSTEM",
+          logs: [
+            "Applying replace_text to setup-jest.ts.",
+            "Unique preimage match confirmed.",
+            "Approved postimage written inside the governed stage workspace.",
+            "Apply ledger finalized.",
+          ],
         },
         {
-          id: "repair-build",
-          label: "Rebuild repaired candidate",
-          node: "repair.validation.build",
-          detail: "Run clean build validation after the bounded repair.",
-          durationMs: 1100,
-          kind: "COMMAND",
-          command: "npm run build",
-          logs: ["$ npm run build", "Build completed.", "exit code 0"],
+          id: "repair-postimage",
+          label: "Verify repair post-state",
+          node: "repair.verify_repair",
+          detail:
+            "Verify the expected postimage, workspace fingerprint change, and apply ledger before any validation command runs.",
+          durationMs: 9000,
+          kind: "SYSTEM",
+          logs: [
+            "setup-jest.ts postimage checksum verified.",
+            "Workspace fingerprint advanced exactly once.",
+            "No unrelated file mutation detected.",
+            "Repair post-state verification PASS.",
+          ],
         },
         {
-          id: "repair-tests",
-          label: "Retest repaired candidate",
-          node: "repair.validation.test",
-          detail: "Run the complete governed test target.",
-          durationMs: 1100,
+          id: "repair-install",
+          label: "Materialize clean dependency closure",
+          node: "repair.final_install",
+          detail:
+            "Run the governed clean install against the already approved manifest and lock authority before tests.",
+          durationMs: 26000,
+          kind: "COMMAND",
+          command: "npm ci",
+          logs: [
+            "$ npm ci",
+            "package-lock.json authority accepted.",
+            "Installed dependency closure materialized.",
+            "exit code 0",
+          ],
+        },
+        {
+          id: "repair-affected-validation",
+          label: "Run affected validation first",
+          node: "repair.revalidate_affected",
+          detail:
+            "Re-run the Jest validation target that exposed the legacy setup import before the full replay.",
+          durationMs: 18000,
           kind: "COMMAND",
           command: "npm test -- --watch=false",
-          logs: ["$ npm test -- --watch=false", "All governed tests passed."],
+          logs: [
+            "$ npm test -- --watch=false",
+            "Jest environment loaded.",
+            "setupZoneTestEnv initialized.",
+            "Affected validation PASS.",
+          ],
+        },
+        {
+          id: "repair-full-build",
+          label: "Replay full production build",
+          node: "repair.validation.build",
+          detail:
+            "Run the full governed production build against the repaired clean generation.",
+          durationMs: 23000,
+          kind: "COMMAND",
+          command: "npm run build -- --configuration production",
+          logs: [
+            "$ npm run build -- --configuration production",
+            "Angular production compilation completed.",
+            "Build validation PASS.",
+            "exit code 0",
+          ],
+        },
+        {
+          id: "repair-full-test",
+          label: "Replay full test validation",
+          node: "repair.validation.test",
+          detail:
+            "Run the complete configured test authority after the affected target has passed.",
+          durationMs: 22000,
+          kind: "COMMAND",
+          command: "npm test -- --watch=false",
+          logs: [
+            "$ npm test -- --watch=false",
+            "Complete governed test target executed.",
+            "Full validation PASS.",
+            "exit code 0",
+          ],
         },
         {
           id: "repair-finalize",
-          label: "Finalize G11 evidence",
-          node: "repair.g11.finalize",
-          detail: "Bind repaired validation evidence for human acceptance.",
-          durationMs: 700,
+          label: "Finalize G11 post-state evidence",
+          node: "repair.create_g11",
+          detail:
+            "Bind apply verification, clean install, affected validation, full build/test results, and final workspace fingerprint for human G11 acceptance.",
+          durationMs: 7000,
           kind: "SYSTEM",
-          logs: ["Repair effects verified.", "G11 repair-validation package finalized."],
+          logs: [
+            "Repair validation summary finalized.",
+            "Final workspace fingerprint bound.",
+            "Repair attempt status=validation_passed.",
+            "G11 package ready for human review.",
+          ],
         },
       ],
     };
