@@ -24,41 +24,32 @@ function timingOperationForNode(
 ): TransformerTimingOperation {
   switch (nodeId) {
     case "select_run_mode":
-    case "prepare_stage_layout":
       return "STAGE_BINDING";
     case "source_install_same_authority":
       return "SOURCE_INSTALL";
-    case "source_tree":
     case "source_version_proof":
       return "SOURCE_PROOF";
     case "source_build":
       return "SOURCE_BUILD";
     case "source_test":
       return "SOURCE_TEST";
-    case "prepare_discovery_toolchain":
-    case "prove_discovery_cli_authority":
     case "run_discovery":
-    case "assess_discovery":
       return "DISCOVERY";
     case "lock_resolution":
       return "LOCK_GENERATION";
     case "target_install_same_authority":
       return "TARGET_INSTALL";
-    case "target_tree":
     case "target_version_proof":
       return "TARGET_PROOF";
     case "execute_migration_owner":
       return "MIGRATION_OWNER";
     case "validation_install":
       return "VALIDATION_INSTALL";
-    case "validation_tree":
-    case "validation_version_proof":
-      return "TARGET_PROOF";
+
     case "validation_build":
       return "VALIDATION_BUILD";
     case "validation_test":
       return "VALIDATION_TEST";
-    case "diagnostic_delta":
     case "aggregate_proven_validation":
       return "DIAGNOSTIC_AGGREGATION";
     case "promotion_pending":
