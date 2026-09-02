@@ -644,6 +644,133 @@ function createAngularLiveExecutionRaw(
     };
   }
 
+  if (kind === "REPAIR_REVIEW" && source === 15 && target === 16) {
+    return {
+      id: id(kind, startedAtMs),
+      kind,
+      status: "RUNNING",
+      startedAtMs,
+      steps: [
+        {
+          id: "repair-tooling-failure-freeze",
+          label: "Freeze lint-tooling failure evidence",
+          node: "repair.failure_evidence.freeze",
+          detail:
+            "Bind the failed configured lint target, Angular 16 builder registry evidence, workspace fingerprint, and immutable failure checksum before model review.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Configured source command: npm run lint -> ng lint.",
+            "Source workspace builder: @angular-devkit/build-angular:tslint.",
+            "Angular CLI 16.2.16 build-angular registry does not expose a tslint builder.",
+            "Failure category=LEGACY_TSLINT_BUILDER_UNAVAILABLE.",
+            "Failure evidence fingerprint finalized.",
+          ],
+        },
+        {
+          id: "repair-tooling-owner-route",
+          label: "Bind Main Repair ownership",
+          node: "repair.failure_owner.bind",
+          detail:
+            "Classify the source-owned lint configuration incompatibility and route the bounded tooling transition to MAIN_REPAIR without granting command authority to the model.",
+          durationMs: 3000,
+          kind: "SYSTEM",
+          logs: [
+            "failure_phase=MAIN_REPAIR",
+            "failure_owner=MAIN_REPAIR_LLM",
+            "Target surface: package.json, angular.json, .eslintrc.json.",
+            "Dropping lint validation is forbidden.",
+          ],
+        },
+        {
+          id: "repair-tooling-context",
+          label: "Build bounded tooling context",
+          node: "repair.context_pack.freeze",
+          detail:
+            "Provide the source lint scripts, TSLint/Codelyzer manifest entries, Angular workspace lint target, and Angular 16 builder authority as bounded repair context.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Source evidence: codelyzer ^6.0.0 and tslint ~6.1.0.",
+            "Angular 16.2.16 builder registry evidence attached.",
+            "angular-eslint 16.3.1 builder contract attached.",
+            "Arbitrary shell and direct lockfile editing remain forbidden.",
+          ],
+        },
+        {
+          id: "repair-tooling-proposer",
+          label: "Main Repair LLM · Repair Proposer",
+          node: "repair.propose_repair",
+          detail:
+            "Author a typed tooling-transition candidate that preserves lint authority while replacing the unavailable TSLint builder.",
+          durationMs: 12000,
+          kind: "LLM",
+          provider: "azure_openai",
+          role: "repair_proposer",
+          logs: [
+            "role=repair_proposer task=repair_diagnosis",
+            "operation=tooling_transition",
+            "Remove TSLint/Codelyzer manifest authority.",
+            "Add angular-eslint 16.x + ESLint manifest intent.",
+            "Replace angular.json lint builder with @angular-eslint/builder:lint.",
+            "Create bounded ESLint configuration.",
+            "Structured tooling repair proposal received.",
+          ],
+        },
+        {
+          id: "repair-tooling-causal-bind",
+          label: "Validate and bind tooling candidate",
+          node: "repair.causal_review",
+          detail:
+            "Schema-check the package/config operations, bind candidate checksums, and verify that lint authority is preserved rather than removed.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Proposal schema validation PASS.",
+            "Package manifest changes are registry-scoped.",
+            "angular.json builder transition is source-confined.",
+            "lintFilePatterns preserve TypeScript and template coverage.",
+            "Causal review PASS.",
+          ],
+        },
+        {
+          id: "repair-tooling-reviewer",
+          label: "Independent Reviewer",
+          node: "repair.review_repair",
+          detail:
+            "Independently review the tooling transition, dependency intent, lint coverage, policy constraints, and required validation targets.",
+          durationMs: 10000,
+          kind: "REVIEWER",
+          provider: "azure_openai",
+          role: "repair_reviewer",
+          logs: [
+            "role=repair_reviewer task=repair_review",
+            "Verified TSLint builder absence is the recorded failure cause.",
+            "Verified lint authority is migrated, not silently disabled.",
+            "Required validation: lock generation, npm ci, lint, build, tests.",
+            "review decision=accept · risk=MEDIUM",
+          ],
+        },
+        {
+          id: "repair-tooling-g10-package",
+          label: "Finalize G10 tooling package",
+          node: "repair.create_g10",
+          detail:
+            "Bind failure evidence, package/config diff, reviewer checksum, validation targets, and workspace fingerprint into the human authorization package.",
+          durationMs: 5000,
+          kind: "SYSTEM",
+          logs: [
+            "Proposal checksum bound.",
+            "Reviewer checksum bound.",
+            "Changed files: package.json, angular.json, .eslintrc.json.",
+            "G10 package finalized.",
+            "No workspace mutation has occurred.",
+          ],
+        },
+      ],
+    };
+  }
+
   if (kind === "REPAIR_REVIEW") {
     return {
       id: id(kind, startedAtMs),
@@ -761,6 +888,159 @@ function createAngularLiveExecutionRaw(
             "Parent request-changes lineage bound.",
             "G10 package finalized.",
             "No workspace mutation has occurred.",
+          ],
+        },
+      ],
+    };
+  }
+
+  if (kind === "REPAIR_VALIDATION" && source === 15 && target === 16) {
+    return {
+      id: id(kind, startedAtMs),
+      kind,
+      status: "RUNNING",
+      startedAtMs,
+      steps: [
+        {
+          id: "repair-tooling-apply-prepare",
+          label: "Verify approved G10 tooling package",
+          node: "repair.apply_prepare",
+          detail:
+            "Recheck proposal/review checksums, workspace fingerprint, manifest preimage, and Angular workspace preimage before mutation.",
+          durationMs: 7000,
+          kind: "SYSTEM",
+          logs: [
+            "G10 decision=APPROVE verified.",
+            "Approved tooling package checksum matches persisted evidence.",
+            "package.json and angular.json preimages verified.",
+            "Workspace fingerprint unchanged since review.",
+          ],
+        },
+        {
+          id: "repair-tooling-manifest",
+          label: "Apply governed lint dependency intent",
+          node: "repair.apply_manifest",
+          detail:
+            "Apply only the approved package.json intent: remove TSLint/Codelyzer authority and add the reviewed angular-eslint/ESLint packages.",
+          durationMs: 10000,
+          kind: "SYSTEM",
+          logs: [
+            "Removed codelyzer and tslint manifest entries.",
+            "Added reviewed angular-eslint 16.x package intent.",
+            "Added ESLint registry semver intent.",
+            "package-lock.json has not been edited directly.",
+          ],
+        },
+        {
+          id: "repair-tooling-config",
+          label: "Apply lint configuration transition",
+          node: "repair.apply_config",
+          detail:
+            "Replace the unavailable Angular TSLint builder with the reviewed angular-eslint lint target and create the bounded ESLint configuration.",
+          durationMs: 10000,
+          kind: "SYSTEM",
+          logs: [
+            "angular.json lint builder -> @angular-eslint/builder:lint.",
+            "lintFilePatterns -> src/**/*.ts and src/**/*.html.",
+            ".eslintrc.json created from approved candidate.",
+            "Lint authority preserved.",
+          ],
+        },
+        {
+          id: "repair-tooling-lock",
+          label: "Regenerate lock authority",
+          node: "repair.lockfile_generation",
+          detail:
+            "Regenerate package-lock.json through the governed lockfile-only npm command; the model never authors lockfile content.",
+          durationMs: 20000,
+          kind: "COMMAND",
+          command: "npm install --package-lock-only --ignore-scripts --no-audit --no-fund",
+          logs: [
+            "$ npm install --package-lock-only --ignore-scripts --no-audit --no-fund",
+            "Manifest checksum verified before queue.",
+            "package-lock.json regenerated by npm.",
+            "Lockfile verification PASS.",
+          ],
+        },
+        {
+          id: "repair-tooling-install",
+          label: "Materialize clean dependency closure",
+          node: "repair.final_install",
+          detail:
+            "Run npm ci against the regenerated lock authority before lint or application validation.",
+          durationMs: 25000,
+          kind: "COMMAND",
+          command: "npm ci",
+          logs: [
+            "$ npm ci",
+            "package-lock.json authority accepted.",
+            "angular-eslint builder materialized.",
+            "Installed dependency closure PASS.",
+            "exit code 0",
+          ],
+        },
+        {
+          id: "repair-tooling-lint",
+          label: "Re-run configured lint authority",
+          node: "repair.revalidate_affected",
+          detail:
+            "Run the same project lint script that failed before repair and prove both TypeScript and Angular template coverage remain active.",
+          durationMs: 18000,
+          kind: "COMMAND",
+          command: "npm run lint",
+          logs: [
+            "$ npm run lint",
+            "ng lint resolved @angular-eslint/builder:lint.",
+            "TypeScript lint target PASS.",
+            "Angular template lint target PASS.",
+            "exit code 0",
+          ],
+        },
+        {
+          id: "repair-tooling-build",
+          label: "Replay full production build",
+          node: "repair.validation.build",
+          detail:
+            "Run the governed Angular production build after the tooling transition.",
+          durationMs: 23000,
+          kind: "COMMAND",
+          command: "npm run build -- --configuration production",
+          logs: [
+            "$ npm run build -- --configuration production",
+            "Angular 16 production compilation completed.",
+            "Build validation PASS.",
+            "exit code 0",
+          ],
+        },
+        {
+          id: "repair-tooling-test",
+          label: "Replay full test validation",
+          node: "repair.validation.test",
+          detail:
+            "Run the configured test authority after lint and build have passed.",
+          durationMs: 22000,
+          kind: "COMMAND",
+          command: "npm test -- --watch=false",
+          logs: [
+            "$ npm test -- --watch=false",
+            "Configured test target executed.",
+            "Full validation PASS.",
+            "exit code 0",
+          ],
+        },
+        {
+          id: "repair-tooling-finalize",
+          label: "Finalize G11 tooling evidence",
+          node: "repair.create_g11",
+          detail:
+            "Bind the tooling apply ledger, lock verification, clean install, lint, build, tests, and final workspace fingerprint for G11.",
+          durationMs: 7000,
+          kind: "SYSTEM",
+          logs: [
+            "Tooling repair validation summary finalized.",
+            "Final workspace fingerprint bound.",
+            "Repair attempt status=validation_passed.",
+            "G11 package ready for human review.",
           ],
         },
       ],
@@ -962,24 +1242,34 @@ function createAngularLiveExecutionRaw(
         durationMs: 1800,
         kind: "COMMAND",
         logs:
-          source === 20 && target === 21
+          source === 15 && target === 16
             ? [
                 "Clean validation generation created.",
                 "npm ci completed against authoritative package-lock.json.",
-                "Build completed.",
-                "Jest validation failed: jest-environment-jsdom was not present.",
-                'Governed dependency_add materialized jest-environment-jsdom@^30.0.0 and regenerated lock authority.',
-                "Validation retried after dependency closure verification.",
-                "setup-jest.ts still imports jest-preset-angular/setup-jest.",
-                "Remaining source failure frozen for Main Repair ownership.",
+                "Production build completed.",
+                "$ npm run lint",
+                "ng lint could not resolve @angular-devkit/build-angular:tslint under Angular CLI 16.2.16.",
+                "Legacy TSLint/Codelyzer tooling evidence frozen.",
+                "Failure routed to governed Main Repair review; lint authority may not be silently dropped.",
               ]
-            : [
-                "Clean validation generation created.",
-                "npm ci --include=optional completed.",
-                "Build completed.",
-                "Tests completed.",
-                "Diagnostic delta aggregated.",
-              ],
+            : source === 20 && target === 21
+              ? [
+                  "Clean validation generation created.",
+                  "npm ci completed against authoritative package-lock.json.",
+                  "Build completed.",
+                  "Jest validation failed: jest-environment-jsdom was not present.",
+                  'Governed dependency_add materialized jest-environment-jsdom@^30.0.0 and regenerated lock authority.',
+                  "Validation retried after dependency closure verification.",
+                  "setup-jest.ts still imports jest-preset-angular/setup-jest.",
+                  "Remaining source failure frozen for Main Repair ownership.",
+                ]
+              : [
+                  "Clean validation generation created.",
+                  "npm ci --include=optional completed.",
+                  "Build completed.",
+                  "Tests completed.",
+                  "Diagnostic delta aggregated.",
+                ],
       },
     ],
   };
