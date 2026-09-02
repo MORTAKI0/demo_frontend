@@ -65,6 +65,7 @@ export type AngularLiveExecutionKind =
   | "PLANNING"
   | "STAGE_PREPARATION"
   | "STAGE_EXECUTION"
+  | "REPAIR_REVIEW"
   | "REPAIR_VALIDATION";
 
 export type AngularLiveExecution = LiveExecution<AngularLiveExecutionKind>;
@@ -238,6 +239,7 @@ export interface AngularRepairAttempt {
     | "REVIEWER_REQUESTED_CHANGES"
     | "MIGRATION_RETRIED"
     | "SUPERSEDED"
+    | "REVIEWING"
     | "READY_FOR_G10"
     | "APPLIED"
     | "VALIDATED";
