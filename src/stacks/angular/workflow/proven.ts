@@ -343,6 +343,24 @@ function sourceBackedRepairAttempts20To21(
   ];
 }
 
+function reviewingRepairAttempts20To21(
+  run: AngularRunModel,
+): AngularRepairAttempt[] {
+  const attempts = sourceBackedRepairAttempts20To21(run);
+  return attempts.map((attempt, index, all) =>
+    index === all.length - 1
+      ? {
+          ...attempt,
+          status: "REVIEWING" as const,
+          proposer: undefined,
+          reviewer: undefined,
+          proposalChecksum: undefined,
+          reviewChecksum: undefined,
+        }
+      : attempt,
+  );
+}
+
 function approveGate(
   stage: AngularStageExecution,
   gateId: AngularStageGateId,
@@ -583,23 +601,25 @@ export function completeAngularApprovedStageExecution(
   };
 
   if (shouldFail) {
-    executed = unlockGate(
-      {
-        ...executed,
-        repairAttempts: sourceBackedRepairAttempts20To21({
-          ...run,
-          stageExecution: executed,
-        }),
-      },
-      "G10",
-    );
+    executed = {
+      ...executed,
+      repairAttempts: reviewingRepairAttempts20To21({
+        ...run,
+        stageExecution: executed,
+      }),
+    };
     return {
       ...run,
       state: "RUNNING",
       phase: "REPAIR",
-      currentGate: "G10",
-      currentAction: "Review Main Repair LLM proposal, independent review, and candidate diff",
-      liveExecution: undefined,
+      currentGate: null,
+      currentAction:
+        "Main Repair LLM and Independent Reviewer are preparing the bounded source repair",
+      liveExecution: createAngularLiveExecution(
+        "REPAIR_REVIEW",
+        Date.parse(now),
+        { source: stage.source, target: stage.target },
+      ),
       route: run.route.map((step) =>
         step.id === stage.stageId
           ? { ...step, status: "ACTION_REQUIRED" as const }
@@ -617,17 +637,6 @@ export function completeAngularApprovedStageExecution(
           timestamp: now,
           checksum: stableDisplayChecksum(
             `${run.id}:${stage.stageId}:failure`,
-          ),
-        },
-        {
-          id: `${run.id}-${stage.stageId}-repair-proposal`,
-          category: "REPAIR",
-          title: "Main Repair LLM proposal reviewed",
-          summary:
-            "A request-changes child repair targets setup-jest.ts with a preimage-bound replace_text operation; the independent Reviewer accepted it and G10 now requires human approval before apply.",
-          timestamp: now,
-          checksum: stableDisplayChecksum(
-            `${run.id}:${stage.stageId}:repair-proposal`,
           ),
         },
       ],
@@ -653,6 +662,47 @@ export function completeAngularApprovedStageExecution(
         timestamp: now,
         checksum: stableDisplayChecksum(
           `${run.id}:${stage.stageId}:validation-pass`,
+        ),
+      },
+    ],
+  };
+}
+
+export function completeAngularRepairReviewExecution(
+  run: AngularRunModel,
+  now: string,
+): AngularRunModel {
+  const stage = run.stageExecution;
+  if (!stage || stage.source !== 20 || stage.target !== 21) {
+    throw new Error("No source-backed Angular 20 → 21 repair review is active.");
+  }
+
+  let reviewed: AngularStageExecution = {
+    ...stage,
+    status: "ACTION_REQUIRED",
+    repairAttempts: sourceBackedRepairAttempts20To21(run),
+  };
+  reviewed = unlockGate(reviewed, "G10");
+
+  return {
+    ...run,
+    phase: "REPAIR",
+    currentGate: "G10",
+    currentAction:
+      "Review Main Repair LLM proposal, Independent Reviewer verdict, and candidate diff",
+    liveExecution: undefined,
+    stageExecution: reviewed,
+    evidence: [
+      ...run.evidence,
+      {
+        id: `${run.id}-${stage.stageId}-repair-proposal`,
+        category: "REPAIR",
+        title: "Main Repair LLM proposal reviewed",
+        summary:
+          "The request-changes child repair targets setup-jest.ts with a preimage-bound replace_text operation; the Independent Reviewer accepted it and G10 now requires human approval before apply.",
+        timestamp: now,
+        checksum: stableDisplayChecksum(
+          `${run.id}:${stage.stageId}:repair-proposal`,
         ),
       },
     ],
