@@ -17,6 +17,7 @@ import {
   answerJavaRepairAssistant,
 } from "../src/stacks/java/workflow/assistant.ts";
 import { cancelJavaMigration } from "../src/stacks/java/workflow/cancellation.ts";
+import { validateUnifiedDiff } from "../src/components/ui/git-diff.ts";
 
 function job() {
   const configuration = prepareJavaMigration({
@@ -80,6 +81,19 @@ test("Java Stage 2 failed validation enters reviewed repair_review", () => {
     model.pipeline.find((phase) => phase.id === "TEST_VALIDATION")?.status,
     "FAILED",
   );
+});
+
+test("normal Java repair attempts expose a valid unified Git patch", () => {
+  const attempt = repairJob().repair.attempts[0]!;
+
+  assert.match(
+    attempt.diff,
+    /^diff --git a\/src\/test\/java\/com\/acme\/OrderServiceTest\.java b\/src\/test\/java\/com\/acme\/OrderServiceTest\.java$/m,
+  );
+  assert.match(attempt.diff, /^--- a\/src\/test\/java\/.+$/m);
+  assert.match(attempt.diff, /^\+\+\+ b\/src\/test\/java\/.+$/m);
+  assert.match(attempt.diff, /^@@ -\d+,\d+ \+\d+,\d+ @@/m);
+  assert.deepEqual(validateUnifiedDiff(attempt.diff), []);
 });
 
 test("approved Java repair returns to validation and only progresses after a green rerun", () => {

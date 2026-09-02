@@ -6,6 +6,21 @@ import type {
   JavaRepairAttempt,
 } from "../domain/run-types.ts";
 
+const REPAIR_TEST_PATH = "src/test/java/com/acme/OrderServiceTest.java";
+
+function renderJavaRepairDiff(): string {
+  return [
+    `diff --git a/${REPAIR_TEST_PATH} b/${REPAIR_TEST_PATH}`,
+    `--- a/${REPAIR_TEST_PATH}`,
+    `+++ b/${REPAIR_TEST_PATH}`,
+    "@@ -42,3 +42,3 @@",
+    "     assertThat(result).isNotNull();",
+    '-    assertThat(result.getLegacyStatus()).isEqualTo("READY");',
+    '+    assertThat(result.getStatus()).isEqualTo("READY");',
+    "     assertThat(result.isValid()).isTrue();",
+  ].join("\n");
+}
+
 function currentRepairGate(job: JavaJobModel): JavaPhaseGate {
   const gate = job.phaseGates.at(-1);
   if (!gate || gate.type !== "repair_review" || gate.status !== "PENDING") {
@@ -67,10 +82,8 @@ function buildAttempt(
       "Test validation failed after transformation; Maven build remains structurally valid.",
     proposerSummary: suffix,
     reviewerVerdict: "ACCEPT",
-    changedFiles: ["src/test/java/com/acme/OrderServiceTest.java"],
-    diff:
-      "- assertThat(result.getLegacyStatus()).isEqualTo(\"READY\");\n" +
-      "+ assertThat(result.getStatus()).isEqualTo(\"READY\");",
+    changedFiles: [REPAIR_TEST_PATH],
+    diff: renderJavaRepairDiff(),
     checksum: stableDisplayChecksum(
       job.id +
         ":repair-attempt:" +

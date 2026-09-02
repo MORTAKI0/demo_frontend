@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fieldClassName } from "@/components/ui/form-field";
+import { GitDiffView } from "@/components/ui/git-diff-view";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { JavaJobModel } from "../domain/run-types";
@@ -72,11 +73,11 @@ export function JavaRepairWorkspace({ job }: { job: JavaJobModel }) {
                 <Fact label="Reviewer" value={attempt.reviewerVerdict} />
                 <Fact label="Checksum" value={attempt.checksum} mono />
               </div>
-              <div className="mt-4 rounded-lg bg-[var(--mf-graphite)] p-4 text-xs text-[#dbe3ee]">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#8390a4]">
+              <div className="mt-4">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mf-text-soft)]">
                   {attempt.changedFiles.join(", ")}
                 </p>
-                <pre className="whitespace-pre-wrap font-mono leading-5">{attempt.diff}</pre>
+                <GitDiffView diff={attempt.diff} />
               </div>
             </article>
           ))}
