@@ -74,6 +74,16 @@ export function seedAngularRun(id: string): AngularRunModel {
       model = finishLive(
         applyAngularStageGateDecision(model, "G07", "APPROVE"),
       );
+
+      if (model.liveExecution?.kind === "REPAIR_REVIEW") {
+        model = finishLive(model);
+        model = finishLive(
+          applyAngularStageGateDecision(model, "G10", "APPROVE"),
+        );
+        model = applyAngularStageGateDecision(model, "G11", "APPROVE");
+        model = applyAngularStageGateDecision(model, "G09", "APPROVE");
+      }
+
       model = finishLive(
         applyAngularStageGateDecision(model, "G12", "APPROVE"),
       );
