@@ -962,14 +962,16 @@ function createAngularLiveExecutionRaw(
         durationMs: 1800,
         kind: "COMMAND",
         logs:
-          source === 13 && target === 14
+          source === 20 && target === 21
             ? [
                 "Clean validation generation created.",
-                "npm ci --include=optional completed.",
+                "npm ci completed against authoritative package-lock.json.",
                 "Build completed.",
-                "Karma test validation started.",
-                "OrderService compatibility expectation failed.",
-                "Failure evidence frozen for governed repair.",
+                "Jest validation failed: jest-environment-jsdom was not present.",
+                'Governed dependency_add materialized jest-environment-jsdom@^30.0.0 and regenerated lock authority.',
+                "Validation retried after dependency closure verification.",
+                "setup-jest.ts still imports jest-preset-angular/setup-jest.",
+                "Remaining source failure frozen for Main Repair ownership.",
               ]
             : [
                 "Clean validation generation created.",
